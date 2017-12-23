@@ -26,7 +26,6 @@ import java.lang.reflect.Proxy;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
@@ -180,14 +179,17 @@ public abstract class SharedEntityManagerCreator {
 
 		private final EntityManagerFactory targetFactory;
 
+		@Nullable
 		private final Map<?, ?> properties;
 
 		private final boolean synchronizedWithTransaction;
 
+		@Nullable
 		private transient volatile ClassLoader proxyClassLoader;
 
 		public SharedEntityManagerInvocationHandler(
-				EntityManagerFactory target, Map<?, ?> properties, boolean synchronizedWithTransaction) {
+				EntityManagerFactory target, @Nullable Map<?, ?> properties, boolean synchronizedWithTransaction) {
+
 			this.targetFactory = target;
 			this.properties = properties;
 			this.synchronizedWithTransaction = synchronizedWithTransaction;
@@ -341,6 +343,7 @@ public abstract class SharedEntityManagerCreator {
 
 		private final Query target;
 
+		@Nullable
 		private EntityManager em;
 
 		public DeferredQueryInvocationHandler(Query target, EntityManager em) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import org.springframework.orm.jpa.persistenceunit.DefaultPersistenceUnitManager
 import org.springframework.orm.jpa.persistenceunit.PersistenceUnitManager;
 import org.springframework.orm.jpa.persistenceunit.PersistenceUnitPostProcessor;
 import org.springframework.orm.jpa.persistenceunit.SmartPersistenceUnitInfo;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
@@ -89,11 +90,12 @@ import org.springframework.util.ClassUtils;
 public class LocalContainerEntityManagerFactoryBean extends AbstractEntityManagerFactoryBean
 		implements ResourceLoaderAware, LoadTimeWeaverAware {
 
+	@Nullable
 	private PersistenceUnitManager persistenceUnitManager;
 
-	private final DefaultPersistenceUnitManager internalPersistenceUnitManager =
-			new DefaultPersistenceUnitManager();
+	private final DefaultPersistenceUnitManager internalPersistenceUnitManager = new DefaultPersistenceUnitManager();
 
+	@Nullable
 	private PersistenceUnitInfo persistenceUnitInfo;
 
 
@@ -138,9 +140,11 @@ public class LocalContainerEntityManagerFactoryBean extends AbstractEntityManage
 	 * @see DefaultPersistenceUnitManager#setDefaultPersistenceUnitName
 	 */
 	@Override
-	public void setPersistenceUnitName(String persistenceUnitName) {
+	public void setPersistenceUnitName(@Nullable String persistenceUnitName) {
 		super.setPersistenceUnitName(persistenceUnitName);
-		this.internalPersistenceUnitManager.setDefaultPersistenceUnitName(persistenceUnitName);
+		if (persistenceUnitName != null) {
+			this.internalPersistenceUnitManager.setDefaultPersistenceUnitName(persistenceUnitName);
+		}
 	}
 
 	/**
@@ -312,13 +316,13 @@ public class LocalContainerEntityManagerFactoryBean extends AbstractEntityManage
 	}
 
 	@Override
-	public void setResourceLoader(@Nullable ResourceLoader resourceLoader) {
+	public void setResourceLoader(ResourceLoader resourceLoader) {
 		this.internalPersistenceUnitManager.setResourceLoader(resourceLoader);
 	}
 
 
 	@Override
-	protected EntityManagerFactory createNativeEntityManagerFactory() throws PersistenceException {
+	public void afterPropertiesSet() throws PersistenceException {
 		PersistenceUnitManager managerToUse = this.persistenceUnitManager;
 		if (this.persistenceUnitManager == null) {
 			this.internalPersistenceUnitManager.afterPropertiesSet();
@@ -328,9 +332,18 @@ public class LocalContainerEntityManagerFactoryBean extends AbstractEntityManage
 		this.persistenceUnitInfo = determinePersistenceUnitInfo(managerToUse);
 		JpaVendorAdapter jpaVendorAdapter = getJpaVendorAdapter();
 		if (jpaVendorAdapter != null && this.persistenceUnitInfo instanceof SmartPersistenceUnitInfo) {
-			((SmartPersistenceUnitInfo) this.persistenceUnitInfo).setPersistenceProviderPackageName(
-					jpaVendorAdapter.getPersistenceProviderRootPackage());
+			String rootPackage = jpaVendorAdapter.getPersistenceProviderRootPackage();
+			if (rootPackage != null) {
+				((SmartPersistenceUnitInfo) this.persistenceUnitInfo).setPersistenceProviderPackageName(rootPackage);
+			}
 		}
+
+		super.afterPropertiesSet();
+	}
+
+	@Override
+	protected EntityManagerFactory createNativeEntityManagerFactory() throws PersistenceException {
+		Assert.state(this.persistenceUnitInfo != null, "PersistenceUnitInfo not initialized");
 
 		PersistenceProvider provider = getPersistenceProvider();
 		if (provider == null) {
@@ -388,11 +401,13 @@ public class LocalContainerEntityManagerFactoryBean extends AbstractEntityManage
 
 
 	@Override
+	@Nullable
 	public PersistenceUnitInfo getPersistenceUnitInfo() {
 		return this.persistenceUnitInfo;
 	}
 
 	@Override
+	@Nullable
 	public String getPersistenceUnitName() {
 		if (this.persistenceUnitInfo != null) {
 			return this.persistenceUnitInfo.getPersistenceUnitName();

@@ -38,28 +38,23 @@ class SeparatorPathElement extends PathElement {
 	 * must be the separator.
 	 */
 	@Override
-	public boolean matches(int candidateIndex, MatchingContext matchingContext) {
-		boolean matched = false;
-		if (candidateIndex < matchingContext.candidateLength &&
-			matchingContext.candidate[candidateIndex] == separator) {
-			if (this.next == null) {
+	public boolean matches(int pathIndex, MatchingContext matchingContext) {
+		if (pathIndex < matchingContext.pathLength && matchingContext.isSeparator(pathIndex)) {
+			if (isNoMorePattern()) {
 				if (matchingContext.determineRemainingPath) {
-					matchingContext.remainingPathIndex = candidateIndex + 1;
-					matched = true;
+					matchingContext.remainingPathIndex = pathIndex + 1;
+					return true;
 				}
 				else {
-					matched = ((candidateIndex + 1) == matchingContext.candidateLength);
+					return (pathIndex + 1 == matchingContext.pathLength);
 				}
 			}
 			else {
-				candidateIndex++;
-				if (matchingContext.isMatchStartMatching && candidateIndex == matchingContext.candidateLength) {
-					return true; // no more data but matches up to this point
-				}
-				matched = this.next.matches(candidateIndex, matchingContext);
+				pathIndex++;
+				return (this.next != null && this.next.matches(pathIndex, matchingContext));
 			}
 		}
-		return matched;
+		return false;
 	}
 
 	@Override
@@ -67,9 +62,12 @@ class SeparatorPathElement extends PathElement {
 		return 1;
 	}
 
-
 	public String toString() {
 		return "Separator(" + this.separator + ")";
+	}
+	
+	public char[] getChars() {
+		return new char[] {this.separator};
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,8 +45,10 @@ import org.springframework.util.ObjectUtils;
 @SuppressWarnings("serial")
 public class RegexpMethodPointcutAdvisor extends AbstractGenericPointcutAdvisor {
 
+	@Nullable
 	private String[] patterns;
 
+	@Nullable
 	private AbstractRegexpMethodPointcut pointcut;
 
 	private final Object pointcutMonitor = new SerializableMonitor();
@@ -122,7 +124,9 @@ public class RegexpMethodPointcutAdvisor extends AbstractGenericPointcutAdvisor 
 		synchronized (this.pointcutMonitor) {
 			if (this.pointcut == null) {
 				this.pointcut = createPointcut();
-				this.pointcut.setPatterns(this.patterns);
+				if (this.patterns != null) {
+					this.pointcut.setPatterns(this.patterns);
+				}
 			}
 			return pointcut;
 		}
@@ -133,7 +137,6 @@ public class RegexpMethodPointcutAdvisor extends AbstractGenericPointcutAdvisor 
 	 * will be used.
 	 * @return the Pointcut instance (never {@code null})
 	 */
-	@Nullable
 	protected AbstractRegexpMethodPointcut createPointcut() {
 		return new JdkRegexpMethodPointcut();
 	}

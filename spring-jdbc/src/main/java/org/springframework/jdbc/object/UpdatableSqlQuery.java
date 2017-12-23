@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.springframework.jdbc.object;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
-
 import javax.sql.DataSource;
 
 import org.springframework.jdbc.core.RowMapper;
@@ -61,7 +60,7 @@ public abstract class UpdatableSqlQuery<T> extends SqlQuery<T> {
 	 * implementation of the {@code updateRow()} method.
 	 */
 	@Override
-	protected RowMapper<T> newRowMapper(@Nullable Object[] parameters, Map<?, ?> context) {
+	protected RowMapper<T> newRowMapper(@Nullable Object[] parameters, @Nullable Map<?, ?> context) {
 		return new RowMapperImpl(context);
 	}
 
@@ -89,9 +88,10 @@ public abstract class UpdatableSqlQuery<T> extends SqlQuery<T> {
 	 */
 	protected class RowMapperImpl implements RowMapper<T> {
 
+		@Nullable
 		private final Map<?, ?> context;
 
-		public RowMapperImpl(Map<?, ?> context) {
+		public RowMapperImpl(@Nullable Map<?, ?> context) {
 			this.context = context;
 		}
 

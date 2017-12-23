@@ -32,6 +32,7 @@ import org.springframework.lang.Nullable;
 @SuppressWarnings("serial")
 public class UnsupportedMediaTypeException extends NestedRuntimeException {
 
+	@Nullable
 	private final MediaType contentType;
 
 	private final List<MediaType> supportedMediaTypes;
@@ -49,8 +50,8 @@ public class UnsupportedMediaTypeException extends NestedRuntimeException {
 	/**
 	 * Constructor for when the Content-Type can be parsed but is not supported.
 	 */
-	public UnsupportedMediaTypeException(MediaType contentType, List<MediaType> supportedMediaTypes) {
-		super("Content type '" + contentType + "' not supported");
+	public UnsupportedMediaTypeException(@Nullable MediaType contentType, List<MediaType> supportedMediaTypes) {
+		super("Content type '" + (contentType != null ? contentType : "") + "' not supported");
 		this.contentType = contentType;
 		this.supportedMediaTypes = Collections.unmodifiableList(supportedMediaTypes);
 	}

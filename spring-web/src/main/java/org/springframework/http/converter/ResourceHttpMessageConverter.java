@@ -78,12 +78,11 @@ public class ResourceHttpMessageConverter extends AbstractHttpMessageConverter<R
 	protected Resource readInternal(Class<? extends Resource> clazz, HttpInputMessage inputMessage)
 			throws IOException, HttpMessageNotReadableException {
 
-		final String filename = inputMessage.getHeaders().getContentDisposition().getFilename();
 		if (this.supportsReadStreaming && InputStreamResource.class == clazz) {
 			return new InputStreamResource(inputMessage.getBody()) {
 				@Override
 				public String getFilename() {
-					return filename;
+					return inputMessage.getHeaders().getContentDisposition().getFilename();
 				}
 			};
 		}
@@ -91,8 +90,9 @@ public class ResourceHttpMessageConverter extends AbstractHttpMessageConverter<R
 			byte[] body = StreamUtils.copyToByteArray(inputMessage.getBody());
 			return new ByteArrayResource(body) {
 				@Override
+				@Nullable
 				public String getFilename() {
-					return filename;
+					return inputMessage.getHeaders().getContentDisposition().getFilename();
 				}
 			};
 		}

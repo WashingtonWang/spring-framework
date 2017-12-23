@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import org.springframework.messaging.SubscribableChannel;
  */
 public class ExecutorSubscribableChannel extends AbstractSubscribableChannel {
 
+	@Nullable
 	private final Executor executor;
 
 	private final List<ExecutorChannelInterceptor> executorInterceptors = new ArrayList<>(4);
@@ -60,6 +61,7 @@ public class ExecutorSubscribableChannel extends AbstractSubscribableChannel {
 	}
 
 
+	@Nullable
 	public Executor getExecutor() {
 		return this.executor;
 	}
@@ -154,9 +156,10 @@ public class ExecutorSubscribableChannel extends AbstractSubscribableChannel {
 
 		@Nullable
 		private Message<?> applyBeforeHandle(Message<?> message) {
+			Message<?> messageToUse = message;
 			for (ExecutorChannelInterceptor interceptor : executorInterceptors) {
-				message = interceptor.beforeHandle(message, ExecutorSubscribableChannel.this, this.messageHandler);
-				if (message == null) {
+				messageToUse = interceptor.beforeHandle(messageToUse, ExecutorSubscribableChannel.this, this.messageHandler);
+				if (messageToUse == null) {
 					String name = interceptor.getClass().getSimpleName();
 					if (logger.isDebugEnabled()) {
 						logger.debug(name + " returned null from beforeHandle, i.e. precluding the send.");
@@ -166,7 +169,7 @@ public class ExecutorSubscribableChannel extends AbstractSubscribableChannel {
 				}
 				this.interceptorIndex++;
 			}
-			return message;
+			return messageToUse;
 		}
 
 		private void triggerAfterMessageHandled(Message<?> message, @Nullable Exception ex) {

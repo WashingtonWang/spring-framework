@@ -82,6 +82,7 @@ public abstract class AbstractFallbackTransactionAttributeSource implements Tran
 	 * is not transactional
 	 */
 	@Override
+	@Nullable
 	public TransactionAttribute getTransactionAttribute(Method method, @Nullable Class<?> targetClass) {
 		if (method.getDeclaringClass() == Object.class) {
 			return null;
@@ -141,14 +142,14 @@ public abstract class AbstractFallbackTransactionAttributeSource implements Tran
 	 * @see #getTransactionAttribute
 	 */
 	@Nullable
-	protected TransactionAttribute computeTransactionAttribute(Method method, Class<?> targetClass) {
+	protected TransactionAttribute computeTransactionAttribute(Method method, @Nullable Class<?> targetClass) {
 		// Don't allow no-public methods as required.
 		if (allowPublicMethodsOnly() && !Modifier.isPublic(method.getModifiers())) {
 			return null;
 		}
 
 		// Ignore CGLIB subclasses - introspect the actual user class.
-		Class<?> userClass = ClassUtils.getUserClass(targetClass);
+		Class<?> userClass = (targetClass != null ? ClassUtils.getUserClass(targetClass) : null);
 		// The method may be on an interface, but we need attributes from the target class.
 		// If the target class is null, the method will be unchanged.
 		Method specificMethod = ClassUtils.getMostSpecificMethod(method, userClass);

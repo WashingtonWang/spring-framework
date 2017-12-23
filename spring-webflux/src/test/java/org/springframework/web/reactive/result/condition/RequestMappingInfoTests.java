@@ -16,22 +16,25 @@
 
 package org.springframework.web.reactive.result.condition;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.server.reactive.test.MockServerHttpRequest;
-import org.springframework.mock.http.server.reactive.test.MockServerWebExchange;
+import org.springframework.mock.web.test.server.MockServerWebExchange;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.reactive.result.method.RequestMappingInfo;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.support.HttpRequestPathHelper;
-import org.springframework.web.server.support.LookupPath;
+import org.springframework.web.util.pattern.PathPattern;
+import org.springframework.web.util.pattern.PatternParseException;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
@@ -47,6 +50,9 @@ import static org.springframework.web.reactive.result.method.RequestMappingInfo.
  * @author Rossen Stoyanchev
  */
 public class RequestMappingInfoTests {
+
+	@Rule
+	public ExpectedException thrown = ExpectedException.none();
 
 	// TODO: CORS pre-flight (see @Ignore)
 
@@ -65,9 +71,23 @@ public class RequestMappingInfoTests {
 	}
 
 	@Test
+	public void throwWhenInvalidPattern() {
+		this.thrown.expect(PatternParseException.class);
+		this.thrown.expectMessage("Expected close capture character after variable name }");
+		paths("/{foo").build();
+	}
+
+	@Test
+	public void prependPatternWithSlash() {
+		RequestMappingInfo actual = paths("foo").build();
+		List<PathPattern> patterns = new ArrayList<>(actual.getPatternsCondition().getPatterns());
+		assertEquals(1, patterns.size());
+		assertEquals("/foo", patterns.get(0).getPatternString());
+	}
+
+	@Test
 	public void matchPatternsCondition() {
-		MockServerWebExchange exchange = MockServerHttpRequest.get("/foo").toExchange();
-		LookupPath.getOrCreate(exchange, new HttpRequestPathHelper());
+		MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo"));
 
 		RequestMappingInfo info = paths("/foo*", "/bar").build();
 		RequestMappingInfo expected = paths("/foo*").build();
@@ -82,8 +102,7 @@ public class RequestMappingInfoTests {
 
 	@Test
 	public void matchParamsCondition() {
-		ServerWebExchange exchange = MockServerHttpRequest.get("/foo?foo=bar").toExchange();
-		LookupPath.getOrCreate(exchange, new HttpRequestPathHelper());
+		ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo?foo=bar"));
 
 		RequestMappingInfo info = paths("/foo").params("foo=bar").build();
 		RequestMappingInfo match = info.getMatchingCondition(exchange);
@@ -98,8 +117,8 @@ public class RequestMappingInfoTests {
 
 	@Test
 	public void matchHeadersCondition() {
-		ServerWebExchange exchange = MockServerHttpRequest.get("/foo").header("foo", "bar").toExchange();
-		LookupPath.getOrCreate(exchange, new HttpRequestPathHelper());
+		MockServerHttpRequest request = MockServerHttpRequest.get("/foo").header("foo", "bar").build();
+		ServerWebExchange exchange = MockServerWebExchange.from(request);
 
 		RequestMappingInfo info = paths("/foo").headers("foo=bar").build();
 		RequestMappingInfo match = info.getMatchingCondition(exchange);
@@ -114,8 +133,8 @@ public class RequestMappingInfoTests {
 
 	@Test
 	public void matchConsumesCondition() {
-		ServerWebExchange exchange = MockServerHttpRequest.post("/foo").contentType(MediaType.TEXT_PLAIN).toExchange();
-		LookupPath.getOrCreate(exchange, new HttpRequestPathHelper());
+		MockServerHttpRequest request = MockServerHttpRequest.post("/foo").contentType(MediaType.TEXT_PLAIN).build();
+		ServerWebExchange exchange = MockServerWebExchange.from(request);
 
 		RequestMappingInfo info = paths("/foo").consumes("text/plain").build();
 		RequestMappingInfo match = info.getMatchingCondition(exchange);
@@ -130,8 +149,8 @@ public class RequestMappingInfoTests {
 
 	@Test
 	public void matchProducesCondition() {
-		ServerWebExchange exchange = MockServerHttpRequest.get("/foo").accept(MediaType.TEXT_PLAIN).toExchange();
-		LookupPath.getOrCreate(exchange, new HttpRequestPathHelper());
+		MockServerHttpRequest request = MockServerHttpRequest.get("/foo").accept(MediaType.TEXT_PLAIN).build();
+		ServerWebExchange exchange = MockServerWebExchange.from(request);
 
 		RequestMappingInfo info = paths("/foo").produces("text/plain").build();
 		RequestMappingInfo match = info.getMatchingCondition(exchange);
@@ -146,9 +165,8 @@ public class RequestMappingInfoTests {
 
 	@Test
 	public void matchCustomCondition() {
-		ServerWebExchange exchange = MockServerHttpRequest.get("/foo?foo=bar").toExchange();
-		LookupPath.getOrCreate(exchange, new HttpRequestPathHelper());
-		
+		ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo?foo=bar"));
+
 		RequestMappingInfo info = paths("/foo").params("foo=bar").build();
 		RequestMappingInfo match = info.getMatchingCondition(exchange);
 
@@ -168,8 +186,7 @@ public class RequestMappingInfoTests {
 		RequestMappingInfo oneMethod = paths().methods(RequestMethod.GET).build();
 		RequestMappingInfo oneMethodOneParam = paths().methods(RequestMethod.GET).params("foo").build();
 
-		ServerWebExchange exchange = MockServerHttpRequest.get("/foo").toExchange();
-		LookupPath.getOrCreate(exchange, new HttpRequestPathHelper());
+		ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo"));
 		Comparator<RequestMappingInfo> comparator = (info, otherInfo) -> info.compareTo(otherInfo, exchange);
 
 		List<RequestMappingInfo> list = asList(none, oneMethod, oneMethodOneParam);
@@ -265,10 +282,10 @@ public class RequestMappingInfoTests {
 	@Test
 	@Ignore
 	public void preFlightRequest() throws Exception {
-		MockServerWebExchange exchange = MockServerHttpRequest.options("/foo")
+		MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.options("/foo")
 				.header("Origin", "http://domain.com")
 				.header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "POST")
-				.toExchange();
+				);
 
 		RequestMappingInfo info = paths("/foo").methods(RequestMethod.POST).build();
 		RequestMappingInfo match = info.getMatchingCondition(exchange);

@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,9 +53,7 @@ import org.springframework.web.bind.support.ConfigurableWebBindingInitializer;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.async.CallableProcessingInterceptor;
-import org.springframework.web.context.request.async.CallableProcessingInterceptorAdapter;
 import org.springframework.web.context.request.async.DeferredResultProcessingInterceptor;
-import org.springframework.web.context.request.async.DeferredResultProcessingInterceptorAdapter;
 import org.springframework.web.context.support.StaticWebApplicationContext;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.method.annotation.ModelAttributeMethodProcessor;
@@ -163,9 +160,11 @@ public class WebMvcConfigurationSupportExtensionTests {
 		chain = handlerMapping.getHandler(new MockHttpServletRequest("GET", "/resources/foo.gif"));
 		assertNotNull(chain);
 		assertNotNull(chain.getHandler());
-		assertEquals(Arrays.toString(chain.getInterceptors()), 2, chain.getInterceptors().length);
+		assertEquals(Arrays.toString(chain.getInterceptors()), 4, chain.getInterceptors().length);
 		// PathExposingHandlerInterceptor at chain.getInterceptors()[0]
-		assertEquals(ResourceUrlProviderExposingInterceptor.class, chain.getInterceptors()[1].getClass());
+		assertEquals(LocaleChangeInterceptor.class, chain.getInterceptors()[1].getClass());
+		assertEquals(ConversionServiceExposingInterceptor.class, chain.getInterceptors()[2].getClass());
+		assertEquals(ResourceUrlProviderExposingInterceptor.class, chain.getInterceptors()[3].getClass());
 
 		handlerMapping = (AbstractHandlerMapping) this.config.defaultServletHandlerMapping();
 		handlerMapping.setApplicationContext(this.context);
@@ -225,7 +224,9 @@ public class WebMvcConfigurationSupportExtensionTests {
 	public void webBindingInitializer() throws Exception {
 		RequestMappingHandlerAdapter adapter = this.config.requestMappingHandlerAdapter();
 
-		ConfigurableWebBindingInitializer initializer = (ConfigurableWebBindingInitializer) adapter.getWebBindingInitializer();
+		ConfigurableWebBindingInitializer initializer =
+				(ConfigurableWebBindingInitializer) adapter.getWebBindingInitializer();
+
 		assertNotNull(initializer);
 
 		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(null, "");
@@ -373,8 +374,8 @@ public class WebMvcConfigurationSupportExtensionTests {
 		@Override
 		public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
 			configurer.setDefaultTimeout(2500).setTaskExecutor(new ConcurrentTaskExecutor())
-				.registerCallableInterceptors(new CallableProcessingInterceptorAdapter() { })
-				.registerDeferredResultInterceptors(new DeferredResultProcessingInterceptorAdapter() {});
+				.registerCallableInterceptors(new CallableProcessingInterceptor() { })
+				.registerDeferredResultInterceptors(new DeferredResultProcessingInterceptor() {});
 		}
 
 		@Override

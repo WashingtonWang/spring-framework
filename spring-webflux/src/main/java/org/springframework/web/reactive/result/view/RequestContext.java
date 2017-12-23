@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.web.reactive.result.view;
 
 import java.util.HashMap;
@@ -24,9 +25,12 @@ import java.util.TimeZone;
 import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.NoSuchMessageException;
+import org.springframework.context.i18n.LocaleContext;
+import org.springframework.context.i18n.TimeZoneAwareLocaleContext;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.Errors;
@@ -61,10 +65,13 @@ public class RequestContext {
 
 	private TimeZone timeZone;
 
+	@Nullable
 	private Boolean defaultHtmlEscape;
 
+	@Nullable
 	private Map<String, Errors> errorsMap;
 
+	@Nullable
 	private RequestDataValueProcessor dataValueProcessor;
 
 
@@ -73,20 +80,23 @@ public class RequestContext {
 	}
 
 	public RequestContext(ServerWebExchange exchange, Map<String, Object> model, MessageSource messageSource,
-			RequestDataValueProcessor dataValueProcessor) {
+			@Nullable RequestDataValueProcessor dataValueProcessor) {
 
-		Assert.notNull(exchange, "'exchange' is required");
-		Assert.notNull(model, "'model' is required");
-		Assert.notNull(messageSource, "'messageSource' is required");
+		Assert.notNull(exchange, "ServerWebExchange is required");
+		Assert.notNull(model, "Model is required");
+		Assert.notNull(messageSource, "MessageSource is required");
 		this.exchange = exchange;
 		this.model = model;
 		this.messageSource = messageSource;
 
-		List<Locale> locales = exchange.getRequest().getHeaders().getAcceptLanguageAsLocales();
-		this.locale = locales.isEmpty() ? Locale.getDefault() : locales.get(0);
-		this.timeZone = TimeZone.getDefault(); // TODO
+		LocaleContext localeContext = exchange.getLocaleContext();
+		Locale locale = localeContext.getLocale();
+		this.locale = (locale != null ? locale : Locale.getDefault());
+		TimeZone timeZone = (localeContext instanceof TimeZoneAwareLocaleContext ?
+				((TimeZoneAwareLocaleContext) localeContext).getTimeZone() : null);
+		this.timeZone = (timeZone != null ? timeZone : TimeZone.getDefault());
 
-		this.defaultHtmlEscape = null; // TODO
+		this.defaultHtmlEscape = null;  // TODO
 		this.dataValueProcessor = dataValueProcessor;
 	}
 
@@ -120,7 +130,6 @@ public class RequestContext {
 
 	/**
 	 * Return the current TimeZone.
-	 * TODO: currently this is the Timezone.getDefault()
 	 */
 	public TimeZone getTimeZone() {
 		return this.timeZone;
@@ -163,6 +172,7 @@ public class RequestContext {
 	 * specified and an explicit value.
 	 * @return whether default HTML escaping is enabled (null = no explicit default)
 	 */
+	@Nullable
 	public Boolean getDefaultHtmlEscape() {
 		return this.defaultHtmlEscape;
 	}
@@ -179,10 +189,10 @@ public class RequestContext {
 	/**
 	 * Return the context path of the current web application. This is
 	 * useful for building links to other resources within the application.
-	 * <p>Delegates to {@link ServerHttpRequest#getContextPath()}.
+	 * <p>Delegates to {@link ServerHttpRequest#getPath()}.
 	 */
 	public String getContextPath() {
-		return this.exchange.getRequest().getContextPath();
+		return this.exchange.getRequest().getPath().contextPath().value();
 	}
 
 	/**
@@ -192,8 +202,8 @@ public class RequestContext {
 	 * absolute path also URL-encoded accordingly
 	 */
 	public String getContextUrl(String relativeUrl) {
-		String url = getContextPath() + relativeUrl;
-		return getExchange().getResponse().encodeUrl(url);
+		String url = StringUtils.applyRelativePath(getContextPath() + "/", relativeUrl);
+		return getExchange().transformUrl(url);
 	}
 
 	/**
@@ -207,10 +217,10 @@ public class RequestContext {
 	 * absolute path also URL-encoded accordingly
 	 */
 	public String getContextUrl(String relativeUrl, Map<String, ?> params) {
-		String url = getContextPath() + relativeUrl;
+		String url = StringUtils.applyRelativePath(getContextPath() + "/", relativeUrl);
 		UriTemplate template = new UriTemplate(url);
 		url = template.expand(params).toASCIIString();
-		return getExchange().getResponse().encodeUrl(url);
+		return getExchange().transformUrl(url);
 	}
 
 	/**
@@ -272,6 +282,9 @@ public class RequestContext {
 	 */
 	public String getMessage(String code, @Nullable Object[] args, String defaultMessage, boolean htmlEscape) {
 		String msg = this.messageSource.getMessage(code, args, defaultMessage, this.locale);
+		if (msg == null) {
+			return "";
+		}
 		return (htmlEscape ? HtmlUtils.htmlEscape(msg) : msg);
 	}
 
@@ -368,7 +381,11 @@ public class RequestContext {
 		Errors errors = this.errorsMap.get(name);
 		if (errors == null) {
 			errors = getModelObject(BindingResult.MODEL_KEY_PREFIX + name);
+			if (errors == null) {
+				return null;
+			}
 		}
+
 		if (errors instanceof BindException) {
 			errors = ((BindException) errors).getBindingResult();
 		}
@@ -395,7 +412,7 @@ public class RequestContext {
 	protected <T> T getModelObject(String modelName) {
 		T modelObject = (T) this.model.get(modelName);
 		if (modelObject == null) {
-			modelObject = (T) this.exchange.getAttribute(modelName).orElse(null);
+			modelObject = this.exchange.getAttribute(modelName);
 		}
 		return modelObject;
 	}

@@ -23,8 +23,6 @@ import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.lang.Nullable;
 import org.springframework.validation.MessageCodesResolver;
 import org.springframework.validation.Validator;
-import org.springframework.web.reactive.accept.CompositeContentTypeResolver;
-import org.springframework.web.reactive.accept.RequestedContentTypeResolver;
 import org.springframework.web.reactive.accept.RequestedContentTypeResolverBuilder;
 import org.springframework.web.reactive.result.method.annotation.ArgumentResolverConfigurer;
 
@@ -45,11 +43,7 @@ public interface WebFluxConfigurer {
 
 	/**
 	 * Configure how the content type requested for the response is resolved.
-	 * <p>The given builder will create a composite of multiple
-	 * {@link RequestedContentTypeResolver}s, each defining a way to resolve
-	 * the requested content type (accept HTTP header, path extension,
-	 * parameter, etc).
-	 * @param builder factory that creates a {@link CompositeContentTypeResolver}
+	 * @param builder for configuring the resolvers to use
 	 */
 	default void configureContentTypeResolver(RequestedContentTypeResolverBuilder builder) {
 	}
@@ -63,13 +57,6 @@ public interface WebFluxConfigurer {
 
 	/**
 	 * Configure path matching options.
-	 * 
-	 * <p>Note that if a {@link org.springframework.web.util.pattern.ParsingPathMatcher}
-	 * is configured here,
-	 * the {@link PathMatchConfigurer#setUseTrailingSlashMatch(Boolean)} and
-	 * {@link PathMatchConfigurer#setUseSuffixPatternMatch(Boolean)} options must be set
-	 * to {@literal false}as they can lead to illegal patterns,
-	 * see {@link org.springframework.web.util.pattern.ParsingPathMatcher}.
 	 * 
 	 * {@code HandlerMapping}s with path matching options.
 	 * @param configurer the {@link PathMatchConfigurer} instance

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import org.springframework.scripting.ScriptSource;
  */
 public class BshScriptEvaluator implements ScriptEvaluator, BeanClassLoaderAware {
 
+	@Nullable
 	private ClassLoader classLoader;
 
 
@@ -57,7 +58,7 @@ public class BshScriptEvaluator implements ScriptEvaluator, BeanClassLoaderAware
 
 
 	@Override
-	public void setBeanClassLoader(@Nullable ClassLoader classLoader) {
+	public void setBeanClassLoader(ClassLoader classLoader) {
 		this.classLoader = classLoader;
 	}
 

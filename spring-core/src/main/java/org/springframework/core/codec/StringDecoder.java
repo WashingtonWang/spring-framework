@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import java.util.function.IntPredicate;
 
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -49,7 +48,7 @@ import org.springframework.util.MimeTypeUtils;
  * @since 5.0
  * @see CharSequenceEncoder
  */
-public class StringDecoder extends AbstractDecoder<String> {
+public class StringDecoder extends AbstractDataBufferDecoder<String> {
 
 	public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
@@ -77,23 +76,14 @@ public class StringDecoder extends AbstractDecoder<String> {
 	}
 
 	@Override
-	public Flux<String> decode(Publisher<DataBuffer> inputStream, @Nullable ResolvableType elementType,
+	public Flux<String> decode(Publisher<DataBuffer> inputStream, ResolvableType elementType,
 			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
 
 		Flux<DataBuffer> inputFlux = Flux.from(inputStream);
 		if (this.splitOnNewline) {
 			inputFlux = Flux.from(inputStream).flatMap(StringDecoder::splitOnNewline);
 		}
-		return inputFlux.map(buffer ->  decodeDataBuffer(buffer, mimeType));
-	}
-
-	@Override
-	public Mono<String> decodeToMono(Publisher<DataBuffer> inputStream, ResolvableType elementType,
-			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
-
-		return Flux.from(inputStream)
-				.reduce(DataBuffer::write)
-				.map(buffer -> decodeDataBuffer(buffer, mimeType));
+		return super.decode(inputFlux, elementType, mimeType, hints);
 	}
 
 	private static Flux<DataBuffer> splitOnNewline(DataBuffer dataBuffer) {
@@ -113,14 +103,17 @@ public class StringDecoder extends AbstractDecoder<String> {
 		return Flux.fromIterable(results);
 	}
 
-	private String decodeDataBuffer(DataBuffer dataBuffer, MimeType mimeType) {
+	@Override
+	protected String decodeDataBuffer(DataBuffer dataBuffer, ResolvableType elementType,
+			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
+
 		Charset charset = getCharset(mimeType);
 		CharBuffer charBuffer = charset.decode(dataBuffer.asByteBuffer());
 		DataBufferUtils.release(dataBuffer);
 		return charBuffer.toString();
 	}
 
-	private Charset getCharset(MimeType mimeType) {
+	private Charset getCharset(@Nullable MimeType mimeType) {
 		if (mimeType != null && mimeType.getCharset() != null) {
 			return mimeType.getCharset();
 		}

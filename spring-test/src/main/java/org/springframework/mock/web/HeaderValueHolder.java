@@ -39,9 +39,11 @@ class HeaderValueHolder {
 	private final List<Object> values = new LinkedList<>();
 
 
-	public void setValue(Object value) {
+	public void setValue(@Nullable Object value) {
 		this.values.clear();
-		this.values.add(value);
+		if (value != null) {
+			this.values.add(value);
+		}
 	}
 
 	public void addValue(Object value) {
@@ -68,10 +70,12 @@ class HeaderValueHolder {
 		return Collections.unmodifiableList(stringList);
 	}
 
+	@Nullable
 	public Object getValue() {
 		return (!this.values.isEmpty() ? this.values.get(0) : null);
 	}
 
+	@Nullable
 	public String getStringValue() {
 		return (!this.values.isEmpty() ? String.valueOf(this.values.get(0)) : null);
 	}

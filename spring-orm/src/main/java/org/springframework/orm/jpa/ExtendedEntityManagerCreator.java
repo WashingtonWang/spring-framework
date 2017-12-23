@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.lang.reflect.Proxy;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
@@ -249,6 +248,7 @@ public abstract class ExtendedEntityManagerCreator {
 
 		private final EntityManager target;
 
+		@Nullable
 		private final PersistenceExceptionTranslator exceptionTranslator;
 
 		private final boolean jta;
@@ -258,7 +258,7 @@ public abstract class ExtendedEntityManagerCreator {
 		private final boolean synchronizedWithTransaction;
 
 		private ExtendedEntityManagerInvocationHandler(EntityManager target,
-				PersistenceExceptionTranslator exceptionTranslator, Boolean jta,
+				@Nullable PersistenceExceptionTranslator exceptionTranslator, @Nullable Boolean jta,
 				boolean containerManaged, boolean synchronizedWithTransaction) {
 
 			this.target = target;
@@ -424,12 +424,14 @@ public abstract class ExtendedEntityManagerCreator {
 
 		private final EntityManager entityManager;
 
+		@Nullable
 		private final PersistenceExceptionTranslator exceptionTranslator;
 
 		public volatile boolean closeOnCompletion = false;
 
 		public ExtendedEntityManagerSynchronization(
-				EntityManager em, PersistenceExceptionTranslator exceptionTranslator) {
+				EntityManager em, @Nullable PersistenceExceptionTranslator exceptionTranslator) {
+
 			super(new EntityManagerHolder(em), em);
 			this.entityManager = em;
 			this.exceptionTranslator = exceptionTranslator;

@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.aopalliance.intercept.MethodInterceptor;
@@ -411,7 +410,7 @@ public class MvcUriComponentsBuilder {
 	 * @since 4.2
 	 */
 	public static UriComponentsBuilder fromMethod(UriComponentsBuilder baseUrl,
-			Class<?> controllerType, Method method, Object... args) {
+			@Nullable Class<?> controllerType, Method method, Object... args) {
 
 		return fromMethodInternal(baseUrl,
 				(controllerType != null ? controllerType : method.getDeclaringClass()), method, args);
@@ -429,7 +428,7 @@ public class MvcUriComponentsBuilder {
 		return UriComponentsBuilder.newInstance().uriComponents(uriComponents);
 	}
 
-	private static UriComponentsBuilder getBaseUrlToUse(UriComponentsBuilder baseUrl) {
+	private static UriComponentsBuilder getBaseUrlToUse(@Nullable UriComponentsBuilder baseUrl) {
 		if (baseUrl != null) {
 			return baseUrl.cloneBuilder();
 		}
@@ -471,13 +470,10 @@ public class MvcUriComponentsBuilder {
 	}
 
 	private static Method getMethod(Class<?> controllerType, final String methodName, final Object... args) {
-		MethodFilter selector = new MethodFilter() {
-			@Override
-			public boolean matches(Method method) {
-				String name = method.getName();
-				int argLength = method.getParameterCount();
-				return (name.equals(methodName) && argLength == args.length);
-			}
+		MethodFilter selector = method -> {
+			String name = method.getName();
+			int argLength = method.getParameterCount();
+			return (name.equals(methodName) && argLength == args.length);
 		};
 		Set<Method> methods = MethodIntrospector.selectMethods(controllerType, selector);
 		if (methods.size() == 1) {
@@ -556,6 +552,7 @@ public class MvcUriComponentsBuilder {
 		}
 	}
 
+	@Nullable
 	private static WebApplicationContext getWebApplicationContext() {
 		RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 		if (requestAttributes == null) {
@@ -721,34 +718,28 @@ public class MvcUriComponentsBuilder {
 	private static class ControllerMethodInvocationInterceptor
 			implements org.springframework.cglib.proxy.MethodInterceptor, MethodInterceptor {
 
-		private static final Method getControllerMethod =
-				ReflectionUtils.findMethod(MethodInvocationInfo.class, "getControllerMethod");
+		private final Class<?> controllerType;
 
-		private static final Method getArgumentValues =
-				ReflectionUtils.findMethod(MethodInvocationInfo.class, "getArgumentValues");
-
-		private static final Method getControllerType =
-				ReflectionUtils.findMethod(MethodInvocationInfo.class, "getControllerType");
-
+		@Nullable
 		private Method controllerMethod;
 
+		@Nullable
 		private Object[] argumentValues;
-
-		private Class<?> controllerType;
 
 		ControllerMethodInvocationInterceptor(Class<?> controllerType) {
 			this.controllerType = controllerType;
 		}
 
 		@Override
+		@Nullable
 		public Object intercept(Object obj, Method method, Object[] args, @Nullable MethodProxy proxy) {
-			if (getControllerMethod.equals(method)) {
+			if (method.getName().equals("getControllerMethod")) {
 				return this.controllerMethod;
 			}
-			else if (getArgumentValues.equals(method)) {
+			else if (method.getName().equals("getArgumentValues")) {
 				return this.argumentValues;
 			}
-			else if (getControllerType.equals(method)) {
+			else if (method.getName().equals("getControllerType")) {
 				return this.controllerType;
 			}
 			else if (ReflectionUtils.isObjectMethod(method)) {
@@ -763,6 +754,7 @@ public class MvcUriComponentsBuilder {
 		}
 
 		@Override
+		@Nullable
 		public Object invoke(org.aopalliance.intercept.MethodInvocation inv) throws Throwable {
 			return intercept(inv.getThis(), inv.getMethod(), inv.getArguments(), null);
 		}
@@ -799,7 +791,7 @@ public class MvcUriComponentsBuilder {
 		/**
 		 * @since 4.2
 		 */
-		public MethodArgumentBuilder(UriComponentsBuilder baseUrl, Class<?> controllerType, Method method) {
+		public MethodArgumentBuilder(@Nullable UriComponentsBuilder baseUrl, Class<?> controllerType, Method method) {
 			Assert.notNull(controllerType, "'controllerType' is required");
 			Assert.notNull(method, "'method' is required");
 			this.baseUrl = (baseUrl != null ? baseUrl : initBaseUrl());
@@ -813,7 +805,8 @@ public class MvcUriComponentsBuilder {
 
 		private static UriComponentsBuilder initBaseUrl() {
 			UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentServletMapping();
-			return UriComponentsBuilder.fromPath(builder.build().getPath());
+			String path = builder.build().getPath();
+			return (path != null ? UriComponentsBuilder.fromPath(path) : UriComponentsBuilder.newInstance());
 		}
 
 		public MethodArgumentBuilder arg(int index, Object value) {

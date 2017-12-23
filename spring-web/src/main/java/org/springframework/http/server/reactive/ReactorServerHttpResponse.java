@@ -17,6 +17,8 @@
 package org.springframework.http.server.reactive;
 
 import java.io.File;
+import java.util.List;
+import java.util.Map;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -30,7 +32,6 @@ import reactor.ipc.netty.http.server.HttpServerResponse;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.util.Assert;
@@ -42,7 +43,7 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 5.0
  */
-public class ReactorServerHttpResponse extends AbstractServerHttpResponse implements ZeroCopyHttpOutputMessage {
+class ReactorServerHttpResponse extends AbstractServerHttpResponse implements ZeroCopyHttpOutputMessage {
 
 	private final HttpServerResponse response;
 
@@ -54,16 +55,18 @@ public class ReactorServerHttpResponse extends AbstractServerHttpResponse implem
 	}
 
 
-	public HttpServerResponse getReactorResponse() {
-		return this.response;
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T> T getNativeResponse() {
+		return (T) this.response;
 	}
 
 
 	@Override
 	protected void applyStatusCode() {
-		HttpStatus statusCode = this.getStatusCode();
+		Integer statusCode = getStatusCodeValue();
 		if (statusCode != null) {
-			getReactorResponse().status(HttpResponseStatus.valueOf(statusCode.value()));
+			this.response.status(HttpResponseStatus.valueOf(statusCode));
 		}
 	}
 
@@ -82,9 +85,9 @@ public class ReactorServerHttpResponse extends AbstractServerHttpResponse implem
 
 	@Override
 	protected void applyHeaders() {
-		for (String name : getHeaders().keySet()) {
-			for (String value : getHeaders().get(name)) {
-				this.response.responseHeaders().add(name, value);
+		for (Map.Entry<String, List<String>> entry : getHeaders().entrySet()) {
+			for (String value : entry.getValue()) {
+				this.response.responseHeaders().add(entry.getKey(), value);
 			}
 		}
 	}

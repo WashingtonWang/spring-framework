@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import org.springframework.lang.Nullable;
  */
 public class DelegatingMessageSource extends MessageSourceSupport implements HierarchicalMessageSource {
 
+	@Nullable
 	private MessageSource parentMessageSource;
 
 
@@ -46,18 +47,23 @@ public class DelegatingMessageSource extends MessageSourceSupport implements Hie
 	}
 
 	@Override
+	@Nullable
 	public MessageSource getParentMessageSource() {
 		return this.parentMessageSource;
 	}
 
 
 	@Override
+	@Nullable
 	public String getMessage(String code, @Nullable Object[] args, @Nullable String defaultMessage, Locale locale) {
 		if (this.parentMessageSource != null) {
 			return this.parentMessageSource.getMessage(code, args, defaultMessage, locale);
 		}
-		else {
+		else if (defaultMessage != null) {
 			return renderDefaultMessage(defaultMessage, args, locale);
+		}
+		else {
+			return null;
 		}
 	}
 
@@ -81,7 +87,7 @@ public class DelegatingMessageSource extends MessageSourceSupport implements Hie
 				return renderDefaultMessage(resolvable.getDefaultMessage(), resolvable.getArguments(), locale);
 			}
 			String[] codes = resolvable.getCodes();
-			String code = (codes != null && codes.length > 0 ? codes[0] : null);
+			String code = (codes != null && codes.length > 0 ? codes[0] : "");
 			throw new NoSuchMessageException(code, locale);
 		}
 	}

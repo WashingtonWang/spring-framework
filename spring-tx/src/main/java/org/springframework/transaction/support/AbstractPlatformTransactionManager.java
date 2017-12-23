@@ -207,7 +207,7 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 	 * Set whether existing transactions should be validated before participating
 	 * in them.
 	 * <p>When participating in an existing transaction (e.g. with
-	 * PROPAGATION_REQUIRES or PROPAGATION_SUPPORTS encountering an existing
+	 * PROPAGATION_REQUIRED or PROPAGATION_SUPPORTS encountering an existing
 	 * transaction), this outer transaction's characteristics will apply even
 	 * to the inner transaction scope. Validation will detect incompatible
 	 * isolation level and read-only settings on the inner transaction definition
@@ -232,7 +232,7 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 	 * Set whether to globally mark an existing transaction as rollback-only
 	 * after a participating transaction failed.
 	 * <p>Default is "true": If a participating transaction (e.g. with
-	 * PROPAGATION_REQUIRES or PROPAGATION_SUPPORTS encountering an existing
+	 * PROPAGATION_REQUIRED or PROPAGATION_SUPPORTS encountering an existing
 	 * transaction) fails, the transaction will be globally marked as rollback-only.
 	 * The only possible outcome of such a transaction is a rollback: The
 	 * transaction originator <i>cannot</i> make the transaction commit anymore.
@@ -511,7 +511,7 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 	 * Create a TransactionStatus instance for the given arguments.
 	 */
 	protected DefaultTransactionStatus newTransactionStatus(
-			TransactionDefinition definition, Object transaction, boolean newTransaction,
+			TransactionDefinition definition, @Nullable Object transaction, boolean newTransaction,
 			boolean newSynchronization, boolean debug, @Nullable Object suspendedResources) {
 
 		boolean actualNewSynchronization = newSynchronization &&
@@ -633,7 +633,7 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 	 * Resume outer transaction after inner transaction begin failed.
 	 */
 	private void resumeAfterBeginException(
-			Object transaction, SuspendedResourcesHolder suspendedResources, Throwable beginEx) {
+			Object transaction, @Nullable SuspendedResourcesHolder suspendedResources, Throwable beginEx) {
 
 		String exMessage = "Inner transaction begin exception overridden by outer transaction resume exception";
 		try {
@@ -1006,7 +1006,8 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 			if (status.isDebug()) {
 				logger.debug("Resuming suspended transaction after completion of inner transaction");
 			}
-			resume(status.getTransaction(), (SuspendedResourcesHolder) status.getSuspendedResources());
+			Object transaction = (status.hasTransaction() ? status.getTransaction() : null);
+			resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
 		}
 	}
 
@@ -1129,7 +1130,7 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 	 * @throws TransactionException in case of system errors
 	 * @see #doSuspend
 	 */
-	protected void doResume(Object transaction, Object suspendedResources) throws TransactionException {
+	protected void doResume(@Nullable Object transaction, Object suspendedResources) throws TransactionException {
 		throw new TransactionSuspensionNotSupportedException(
 				"Transaction manager [" + getClass().getName() + "] does not support transaction suspension");
 	}
@@ -1270,14 +1271,18 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 	 */
 	protected static class SuspendedResourcesHolder {
 
+		@Nullable
 		private final Object suspendedResources;
 
+		@Nullable
 		private List<TransactionSynchronization> suspendedSynchronizations;
 
+		@Nullable
 		private String name;
 
 		private boolean readOnly;
 
+		@Nullable
 		private Integer isolationLevel;
 
 		private boolean wasActive;
@@ -1287,8 +1292,9 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 		}
 
 		private SuspendedResourcesHolder(
-				Object suspendedResources, List<TransactionSynchronization> suspendedSynchronizations,
-				String name, boolean readOnly, Integer isolationLevel, boolean wasActive) {
+				@Nullable Object suspendedResources, List<TransactionSynchronization> suspendedSynchronizations,
+				@Nullable String name, boolean readOnly, @Nullable Integer isolationLevel, boolean wasActive) {
+
 			this.suspendedResources = suspendedResources;
 			this.suspendedSynchronizations = suspendedSynchronizations;
 			this.name = name;

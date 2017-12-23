@@ -30,8 +30,10 @@ import org.springframework.orm.hibernate5.SessionFactoryUtils;
 import org.springframework.orm.hibernate5.SessionHolder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.ui.ModelMap;
+import org.springframework.util.Assert;
 import org.springframework.web.context.request.AsyncWebRequestInterceptor;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.context.request.async.CallableProcessingInterceptor;
 import org.springframework.web.context.request.async.WebAsyncManager;
 import org.springframework.web.context.request.async.WebAsyncUtils;
 
@@ -78,21 +80,29 @@ public class OpenSessionInViewInterceptor implements AsyncWebRequestInterceptor 
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
+	@Nullable
 	private SessionFactory sessionFactory;
 
 
 	/**
 	 * Set the Hibernate SessionFactory that should be used to create Hibernate Sessions.
 	 */
-	public void setSessionFactory(SessionFactory sessionFactory) {
+	public void setSessionFactory(@Nullable SessionFactory sessionFactory) {
 		this.sessionFactory = sessionFactory;
 	}
 
 	/**
 	 * Return the Hibernate SessionFactory that should be used to create Hibernate Sessions.
 	 */
+	@Nullable
 	public SessionFactory getSessionFactory() {
 		return this.sessionFactory;
+	}
+
+	private SessionFactory obtainSessionFactory() {
+		SessionFactory sf = getSessionFactory();
+		Assert.state(sf != null, "No SessionFactory set");
+		return sf;
 	}
 
 
@@ -111,7 +121,7 @@ public class OpenSessionInViewInterceptor implements AsyncWebRequestInterceptor 
 			}
 		}
 
-		if (TransactionSynchronizationManager.hasResource(getSessionFactory())) {
+		if (TransactionSynchronizationManager.hasResource(obtainSessionFactory())) {
 			// Do not modify the Session: just mark the request accordingly.
 			Integer count = (Integer) request.getAttribute(participateAttributeName, WebRequest.SCOPE_REQUEST);
 			int newCount = (count != null ? count + 1 : 1);
@@ -121,10 +131,10 @@ public class OpenSessionInViewInterceptor implements AsyncWebRequestInterceptor 
 			logger.debug("Opening Hibernate Session in OpenSessionInViewInterceptor");
 			Session session = openSession();
 			SessionHolder sessionHolder = new SessionHolder(session);
-			TransactionSynchronizationManager.bindResource(getSessionFactory(), sessionHolder);
+			TransactionSynchronizationManager.bindResource(obtainSessionFactory(), sessionHolder);
 
 			AsyncRequestInterceptor asyncRequestInterceptor =
-					new AsyncRequestInterceptor(getSessionFactory(), sessionHolder);
+					new AsyncRequestInterceptor(obtainSessionFactory(), sessionHolder);
 			asyncManager.registerCallableInterceptor(participateAttributeName, asyncRequestInterceptor);
 			asyncManager.registerDeferredResultInterceptor(participateAttributeName, asyncRequestInterceptor);
 		}
@@ -142,7 +152,7 @@ public class OpenSessionInViewInterceptor implements AsyncWebRequestInterceptor 
 	public void afterCompletion(WebRequest request, @Nullable Exception ex) throws DataAccessException {
 		if (!decrementParticipateCount(request)) {
 			SessionHolder sessionHolder =
-					(SessionHolder) TransactionSynchronizationManager.unbindResource(getSessionFactory());
+					(SessionHolder) TransactionSynchronizationManager.unbindResource(obtainSessionFactory());
 			logger.debug("Closing Hibernate Session in OpenSessionInViewInterceptor");
 			SessionFactoryUtils.closeSession(sessionHolder.getSession());
 		}
@@ -167,7 +177,7 @@ public class OpenSessionInViewInterceptor implements AsyncWebRequestInterceptor 
 	@Override
 	public void afterConcurrentHandlingStarted(WebRequest request) {
 		if (!decrementParticipateCount(request)) {
-			TransactionSynchronizationManager.unbindResource(getSessionFactory());
+			TransactionSynchronizationManager.unbindResource(obtainSessionFactory());
 		}
 	}
 
@@ -182,7 +192,7 @@ public class OpenSessionInViewInterceptor implements AsyncWebRequestInterceptor 
 	@SuppressWarnings("deprecation")
 	protected Session openSession() throws DataAccessResourceFailureException {
 		try {
-			Session session = getSessionFactory().openSession();
+			Session session = obtainSessionFactory().openSession();
 			session.setFlushMode(FlushMode.MANUAL);
 			return session;
 		}
@@ -198,14 +208,15 @@ public class OpenSessionInViewInterceptor implements AsyncWebRequestInterceptor 
 	 * of the {@code SessionFactory} instance and appends {@link #PARTICIPATE_SUFFIX}.
 	 */
 	protected String getParticipateAttributeName() {
-		return getSessionFactory().toString() + PARTICIPATE_SUFFIX;
+		return obtainSessionFactory().toString() + PARTICIPATE_SUFFIX;
 	}
 
 	private boolean applySessionBindingInterceptor(WebAsyncManager asyncManager, String key) {
-		if (asyncManager.getCallableInterceptor(key) == null) {
+		CallableProcessingInterceptor cpi = asyncManager.getCallableInterceptor(key);
+		if (cpi == null) {
 			return false;
 		}
-		((AsyncRequestInterceptor) asyncManager.getCallableInterceptor(key)).bindSession();
+		((AsyncRequestInterceptor) cpi).bindSession();
 		return true;
 	}
 

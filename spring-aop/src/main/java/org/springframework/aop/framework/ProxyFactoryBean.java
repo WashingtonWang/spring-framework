@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ import org.springframework.beans.factory.FactoryBeanNotInitializedException;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
@@ -101,8 +102,10 @@ public class ProxyFactoryBean extends ProxyCreatorSupport
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
+	@Nullable
 	private String[] interceptorNames;
 
+	@Nullable
 	private String targetName;
 
 	private boolean autodetectInterfaces = true;
@@ -113,16 +116,19 @@ public class ProxyFactoryBean extends ProxyCreatorSupport
 
 	private boolean freezeProxy = false;
 
+	@Nullable
 	private transient ClassLoader proxyClassLoader = ClassUtils.getDefaultClassLoader();
 
 	private transient boolean classLoaderConfigured = false;
 
+	@Nullable
 	private transient BeanFactory beanFactory;
 
 	/** Whether the advisor chain has already been initialized */
 	private boolean advisorChainInitialized = false;
 
 	/** If this is a singleton, the cached singleton proxy instance */
+	@Nullable
 	private Object singletonInstance;
 
 
@@ -220,7 +226,7 @@ public class ProxyFactoryBean extends ProxyCreatorSupport
 	}
 
 	@Override
-	public void setBeanClassLoader(@Nullable ClassLoader classLoader) {
+	public void setBeanClassLoader(ClassLoader classLoader) {
 		if (!this.classLoaderConfigured) {
 			this.proxyClassLoader = classLoader;
 		}
@@ -241,6 +247,7 @@ public class ProxyFactoryBean extends ProxyCreatorSupport
 	 * @return a fresh AOP proxy reflecting the current state of this factory
 	 */
 	@Override
+	@Nullable
 	public Object getObject() throws BeansException {
 		initializeAdvisorChain();
 		if (isSingleton()) {
@@ -345,8 +352,10 @@ public class ProxyFactoryBean extends ProxyCreatorSupport
 		copy.copyConfigurationFrom(this, targetSource, freshAdvisorChain());
 		if (this.autodetectInterfaces && getProxiedInterfaces().length == 0 && !isProxyTargetClass()) {
 			// Rely on AOP infrastructure to tell us what interfaces to proxy.
-			copy.setInterfaces(
-					ClassUtils.getAllInterfacesForClass(targetSource.getTargetClass(), this.proxyClassLoader));
+			Class<?> targetClass = targetSource.getTargetClass();
+			if (targetClass != null) {
+				copy.setInterfaces(ClassUtils.getAllInterfacesForClass(targetClass, this.proxyClassLoader));
+			}
 		}
 		copy.setFrozen(this.freezeProxy);
 
@@ -402,6 +411,7 @@ public class ProxyFactoryBean extends ProxyCreatorSupport
 	 * @return {@code true} if it's an Advisor or Advice
 	 */
 	private boolean isNamedBeanAnAdvisorOrAdvice(String beanName) {
+		Assert.state(this.beanFactory != null, "No BeanFactory set");
 		Class<?> namedBeanClass = this.beanFactory.getType(beanName);
 		if (namedBeanClass != null) {
 			return (Advisor.class.isAssignableFrom(namedBeanClass) || Advice.class.isAssignableFrom(namedBeanClass));

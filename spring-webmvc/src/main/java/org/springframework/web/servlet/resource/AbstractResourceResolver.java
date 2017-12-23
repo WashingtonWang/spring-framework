@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,8 @@ public abstract class AbstractResourceResolver implements ResourceResolver {
 
 
 	@Override
-	public Resource resolveResource(HttpServletRequest request, String requestPath,
+	@Nullable
+	public Resource resolveResource(@Nullable HttpServletRequest request, String requestPath,
 			List<? extends Resource> locations, ResourceResolverChain chain) {
 
 		if (logger.isTraceEnabled()) {
@@ -48,6 +49,7 @@ public abstract class AbstractResourceResolver implements ResourceResolver {
 	}
 
 	@Override
+	@Nullable
 	public String resolveUrlPath(String resourceUrlPath, List<? extends Resource> locations,
 			ResourceResolverChain chain) {
 
@@ -60,9 +62,10 @@ public abstract class AbstractResourceResolver implements ResourceResolver {
 
 
 	@Nullable
-	protected abstract Resource resolveResourceInternal(HttpServletRequest request, String requestPath,
-			List<? extends Resource> locations, ResourceResolverChain chain);
+	protected abstract Resource resolveResourceInternal(@Nullable HttpServletRequest request,
+			String requestPath, List<? extends Resource> locations, ResourceResolverChain chain);
 
+	@Nullable
 	protected abstract String resolveUrlPathInternal(String resourceUrlPath,
 			List<? extends Resource> locations, ResourceResolverChain chain);
 

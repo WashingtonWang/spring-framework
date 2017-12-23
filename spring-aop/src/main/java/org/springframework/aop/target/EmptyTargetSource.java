@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,10 +87,12 @@ public class EmptyTargetSource implements TargetSource, Serializable {
 		this.isStatic = isStatic;
 	}
 
+
 	/**
 	 * Always returns the specified target Class, or {@code null} if none.
 	 */
 	@Override
+	@Nullable
 	public Class<?> getTargetClass() {
 		return this.targetClass;
 	}
@@ -107,6 +109,7 @@ public class EmptyTargetSource implements TargetSource, Serializable {
 	 * Always returns {@code null}.
 	 */
 	@Override
+	@Nullable
 	public Object getTarget() {
 		return null;
 	}

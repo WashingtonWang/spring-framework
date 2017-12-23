@@ -29,7 +29,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterRegistration;
 import javax.servlet.RequestDispatcher;
@@ -131,14 +130,17 @@ public class MockServletContext implements ServletContext {
 
 	private final Set<String> declaredRoles = new LinkedHashSet<>();
 
+	@Nullable
 	private Set<SessionTrackingMode> sessionTrackingModes;
 
 	private final SessionCookieConfig sessionCookieConfig = new MockSessionCookieConfig();
 
 	private int sessionTimeout;
 
+	@Nullable
 	private String requestCharacterEncoding;
 
+	@Nullable
 	private String responseCharacterEncoding;
 
 	private final Map<String, MediaType> mimeTypes = new LinkedHashMap<>();
@@ -182,7 +184,7 @@ public class MockServletContext implements ServletContext {
 	 */
 	public MockServletContext(String resourceBasePath, @Nullable ResourceLoader resourceLoader) {
 		this.resourceLoader = (resourceLoader != null ? resourceLoader : new DefaultResourceLoader());
-		this.resourceBasePath = (resourceBasePath != null ? resourceBasePath : "");
+		this.resourceBasePath = resourceBasePath;
 
 		// Use JVM temp dir as ServletContext temp dir.
 		String tempDir = System.getProperty(TEMP_DIR_SYSTEM_PROPERTY);
@@ -207,7 +209,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	public void setContextPath(String contextPath) {
-		this.contextPath = (contextPath != null ? contextPath : "");
+		this.contextPath = contextPath;
 	}
 
 	@Override
@@ -264,6 +266,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public String getMimeType(String filePath) {
 		String extension = StringUtils.getFilenameExtension(filePath);
 		if (this.mimeTypes.containsKey(extension)) {
@@ -287,6 +290,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public Set<String> getResourcePaths(String path) {
 		String actualPath = (path.endsWith("/") ? path : path + "/");
 		Resource resource = this.resourceLoader.getResource(getResourceLocation(actualPath));
@@ -313,6 +317,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public URL getResource(String path) throws MalformedURLException {
 		Resource resource = this.resourceLoader.getResource(getResourceLocation(path));
 		if (!resource.exists()) {
@@ -331,6 +336,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public InputStream getResourceAsStream(String path) {
 		Resource resource = this.resourceLoader.getResource(getResourceLocation(path));
 		if (!resource.exists()) {
@@ -410,6 +416,7 @@ public class MockServletContext implements ServletContext {
 
 	@Override
 	@Deprecated
+	@Nullable
 	public Servlet getServlet(String name) {
 		return null;
 	}
@@ -443,6 +450,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public String getRealPath(String path) {
 		Resource resource = this.resourceLoader.getResource(getResourceLocation(path));
 		try {
@@ -486,6 +494,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public Object getAttribute(String name) {
 		Assert.notNull(name, "Attribute name must not be null");
 		return this.attributes.get(name);
@@ -497,7 +506,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
-	public void setAttribute(String name, Object value) {
+	public void setAttribute(String name, @Nullable Object value) {
 		Assert.notNull(name, "Attribute name must not be null");
 		if (value != null) {
 			this.attributes.put(name, value);
@@ -523,6 +532,7 @@ public class MockServletContext implements ServletContext {
 	}
 
 	@Override
+	@Nullable
 	public ClassLoader getClassLoader() {
 		return ClassUtils.getDefaultClassLoader();
 	}
@@ -562,32 +572,34 @@ public class MockServletContext implements ServletContext {
 		return this.sessionCookieConfig;
 	}
 
-	// @Override - but only against Servlet 4.0
+	@Override  // on Servlet 4.0
 	public void setSessionTimeout(int sessionTimeout) {
 		this.sessionTimeout = sessionTimeout;
 	}
 
-	// @Override - but only against Servlet 4.0
+	@Override  // on Servlet 4.0
 	public int getSessionTimeout() {
 		return this.sessionTimeout;
 	}
 
-	// @Override - but only against Servlet 4.0
-	public void setRequestCharacterEncoding(String requestCharacterEncoding) {
+	@Override  // on Servlet 4.0
+	public void setRequestCharacterEncoding(@Nullable String requestCharacterEncoding) {
 		this.requestCharacterEncoding = requestCharacterEncoding;
 	}
 
-	// @Override - but only against Servlet 4.0
+	@Override  // on Servlet 4.0
+	@Nullable
 	public String getRequestCharacterEncoding() {
 		return this.requestCharacterEncoding;
 	}
 
-	// @Override - but only against Servlet 4.0
-	public void setResponseCharacterEncoding(String responseCharacterEncoding) {
+	@Override  // on Servlet 4.0
+	public void setResponseCharacterEncoding(@Nullable String responseCharacterEncoding) {
 		this.responseCharacterEncoding = responseCharacterEncoding;
 	}
 
-	// @Override - but only against Servlet 4.0
+	@Override  // on Servlet 4.0
+	@Nullable
 	public String getResponseCharacterEncoding() {
 		return this.responseCharacterEncoding;
 	}
@@ -602,7 +614,7 @@ public class MockServletContext implements ServletContext {
 		throw new UnsupportedOperationException();
 	}
 
-	// @Override - but only against Servlet 4.0
+	@Override  // on Servlet 4.0
 	public ServletRegistration.Dynamic addJspFile(String servletName, String jspFile) {
 		throw new UnsupportedOperationException();
 	}

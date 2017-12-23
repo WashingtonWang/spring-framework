@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ public abstract class AbstractHandlerMethodExceptionResolver extends AbstractHan
 	@Override
 	protected boolean shouldApplyTo(HttpServletRequest request, @Nullable Object handler) {
 		if (handler == null) {
-			return super.shouldApplyTo(request, handler);
+			return super.shouldApplyTo(request, null);
 		}
 		else if (handler instanceof HandlerMethod) {
 			HandlerMethod handlerMethod = (HandlerMethod) handler;
@@ -54,6 +54,7 @@ public abstract class AbstractHandlerMethodExceptionResolver extends AbstractHan
 	}
 
 	@Override
+	@Nullable
 	protected final ModelAndView doResolveException(
 			HttpServletRequest request, HttpServletResponse response, @Nullable Object handler, Exception ex) {
 

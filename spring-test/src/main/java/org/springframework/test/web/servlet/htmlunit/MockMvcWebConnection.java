@@ -87,11 +87,11 @@ public final class MockMvcWebConnection implements WebConnection {
 	 * to {@link javax.servlet.http.HttpServletRequest#getContextPath()}
 	 * which states that it can be an empty string and otherwise must start
 	 * with a "/" character and not end with a "/" character.
-	 * @param mockMvc the {@code MockMvc} instance to use; never {@code null}
-	 * @param webClient  the {@link WebClient} to use. never {@code null}
+	 * @param mockMvc the {@code MockMvc} instance to use (never {@code null})
+	 * @param webClient the {@link WebClient} to use (never {@code null})
 	 * @param contextPath the contextPath to use
 	 */
-	public MockMvcWebConnection(MockMvc mockMvc, WebClient webClient, @Nullable String contextPath) {
+	public MockMvcWebConnection(MockMvc mockMvc, WebClient webClient, String contextPath) {
 		Assert.notNull(mockMvc, "MockMvc must not be null");
 		Assert.notNull(webClient, "WebClient must not be null");
 		validateContextPath(contextPath);
@@ -154,9 +154,6 @@ public final class MockMvcWebConnection implements WebConnection {
 	}
 
 	private void storeCookies(WebRequest webRequest, javax.servlet.http.Cookie[] cookies) {
-		if (cookies == null) {
-			return;
-		}
 		Date now = new Date();
 		CookieManager cookieManager = this.webClient.getCookieManager();
 		for (javax.servlet.http.Cookie cookie : cookies) {

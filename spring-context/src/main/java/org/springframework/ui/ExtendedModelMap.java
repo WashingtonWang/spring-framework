@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,25 +43,25 @@ public class ExtendedModelMap extends ModelMap implements Model {
 	}
 
 	@Override
-	public ExtendedModelMap addAttribute(@Nullable Object attributeValue) {
+	public ExtendedModelMap addAttribute(Object attributeValue) {
 		super.addAttribute(attributeValue);
 		return this;
 	}
 
 	@Override
-	public ExtendedModelMap addAllAttributes(Collection<?> attributeValues) {
+	public ExtendedModelMap addAllAttributes(@Nullable Collection<?> attributeValues) {
 		super.addAllAttributes(attributeValues);
 		return this;
 	}
 
 	@Override
-	public ExtendedModelMap addAllAttributes(Map<String, ?> attributes) {
+	public ExtendedModelMap addAllAttributes(@Nullable Map<String, ?> attributes) {
 		super.addAllAttributes(attributes);
 		return this;
 	}
 
 	@Override
-	public ExtendedModelMap mergeAttributes(Map<String, ?> attributes) {
+	public ExtendedModelMap mergeAttributes(@Nullable Map<String, ?> attributes) {
 		super.mergeAttributes(attributes);
 		return this;
 	}

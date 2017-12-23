@@ -47,10 +47,13 @@ public class BshScriptFactory implements ScriptFactory, BeanClassLoaderAware {
 
 	private final String scriptSourceLocator;
 
+	@Nullable
 	private final Class<?>[] scriptInterfaces;
 
+	@Nullable
 	private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
 
+	@Nullable
 	private Class<?> scriptClass;
 
 	private final Object scriptClassMonitor = new Object();
@@ -90,7 +93,7 @@ public class BshScriptFactory implements ScriptFactory, BeanClassLoaderAware {
 
 
 	@Override
-	public void setBeanClassLoader(@Nullable ClassLoader classLoader) {
+	public void setBeanClassLoader(ClassLoader classLoader) {
 		this.beanClassLoader = classLoader;
 	}
 
@@ -101,6 +104,7 @@ public class BshScriptFactory implements ScriptFactory, BeanClassLoaderAware {
 	}
 
 	@Override
+	@Nullable
 	public Class<?>[] getScriptInterfaces() {
 		return this.scriptInterfaces;
 	}
@@ -118,6 +122,7 @@ public class BshScriptFactory implements ScriptFactory, BeanClassLoaderAware {
 	 * @see BshScriptUtils#createBshObject(String, Class[], ClassLoader)
 	 */
 	@Override
+	@Nullable
 	public Object getScriptedObject(ScriptSource scriptSource, @Nullable Class<?>... actualInterfaces)
 			throws IOException, ScriptCompilationException {
 
@@ -176,6 +181,7 @@ public class BshScriptFactory implements ScriptFactory, BeanClassLoaderAware {
 	}
 
 	@Override
+	@Nullable
 	public Class<?> getScriptedObjectType(ScriptSource scriptSource)
 			throws IOException, ScriptCompilationException {
 

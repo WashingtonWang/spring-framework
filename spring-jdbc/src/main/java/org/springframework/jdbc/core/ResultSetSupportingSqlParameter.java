@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,10 +27,13 @@ import org.springframework.lang.Nullable;
  */
 public class ResultSetSupportingSqlParameter extends SqlParameter {
 
+	@Nullable
 	private ResultSetExtractor<?> resultSetExtractor;
 
+	@Nullable
 	private RowCallbackHandler rowCallbackHandler;
 
+	@Nullable
 	private RowMapper<?> rowMapper;
 
 
@@ -60,7 +63,7 @@ public class ResultSetSupportingSqlParameter extends SqlParameter {
 	 * @param sqlType SQL type of the parameter according to java.sql.Types
 	 * @param typeName the type name of the parameter (optional)
 	 */
-	public ResultSetSupportingSqlParameter(String name, int sqlType, String typeName) {
+	public ResultSetSupportingSqlParameter(String name, int sqlType, @Nullable String typeName) {
 		super(name, sqlType, typeName);
 	}
 

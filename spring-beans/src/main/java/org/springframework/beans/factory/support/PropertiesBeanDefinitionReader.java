@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,6 +141,7 @@ public class PropertiesBeanDefinitionReader extends AbstractBeanDefinitionReader
 	public static final String CONSTRUCTOR_ARG_PREFIX = "$";
 
 
+	@Nullable
 	private String defaultParentBean;
 
 	private PropertiesPersister propertiesPersister = new DefaultPropertiesPersister();
@@ -168,13 +169,14 @@ public class PropertiesBeanDefinitionReader extends AbstractBeanDefinitionReader
 	 * not apply to a bean definition that carries a class is there for
 	 * backwards compatibility reasons. It still matches the typical use case.
 	 */
-	public void setDefaultParentBean(String defaultParentBean) {
+	public void setDefaultParentBean(@Nullable String defaultParentBean) {
 		this.defaultParentBean = defaultParentBean;
 	}
 
 	/**
 	 * Return the default parent bean for this bean factory.
 	 */
+	@Nullable
 	public String getDefaultParentBean() {
 		return this.defaultParentBean;
 	}
@@ -184,7 +186,7 @@ public class PropertiesBeanDefinitionReader extends AbstractBeanDefinitionReader
 	 * The default is DefaultPropertiesPersister.
 	 * @see org.springframework.util.DefaultPropertiesPersister
 	 */
-	public void setPropertiesPersister(PropertiesPersister propertiesPersister) {
+	public void setPropertiesPersister(@Nullable PropertiesPersister propertiesPersister) {
 		this.propertiesPersister =
 				(propertiesPersister != null ? propertiesPersister : new DefaultPropertiesPersister());
 	}
@@ -435,8 +437,8 @@ public class PropertiesBeanDefinitionReader extends AbstractBeanDefinitionReader
 				else if (SINGLETON_KEY.equals(property)) {
 					// Spring 1.2 style
 					String val = StringUtils.trimWhitespace((String) entry.getValue());
-					scope = ((val == null || TRUE_VALUE.equals(val) ? GenericBeanDefinition.SCOPE_SINGLETON :
-							GenericBeanDefinition.SCOPE_PROTOTYPE));
+					scope = ("".equals(val) || TRUE_VALUE.equals(val) ? GenericBeanDefinition.SCOPE_SINGLETON :
+							GenericBeanDefinition.SCOPE_PROTOTYPE);
 				}
 				else if (LAZY_INIT_KEY.equals(property)) {
 					String val = StringUtils.trimWhitespace((String) entry.getValue());

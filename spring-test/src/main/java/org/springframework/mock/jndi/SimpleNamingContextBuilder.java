@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.mock.jndi;
 
 import java.util.Hashtable;
-
 import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.spi.InitialContextFactory;
@@ -85,6 +84,7 @@ import org.springframework.util.ReflectionUtils;
 public class SimpleNamingContextBuilder implements InitialContextFactoryBuilder {
 
 	/** An instance of this class bound to JNDI */
+	@Nullable
 	private static volatile SimpleNamingContextBuilder activated;
 
 	private static boolean initialized = false;
@@ -112,17 +112,18 @@ public class SimpleNamingContextBuilder implements InitialContextFactoryBuilder 
 	 * to control JNDI bindings
 	 */
 	public static SimpleNamingContextBuilder emptyActivatedContextBuilder() throws NamingException {
-		if (activated != null) {
+		SimpleNamingContextBuilder builder = activated;
+		if (builder != null) {
 			// Clear already activated context builder.
-			activated.clear();
+			builder.clear();
 		}
 		else {
 			// Create and activate new context builder.
-			SimpleNamingContextBuilder builder = new SimpleNamingContextBuilder();
+			builder = new SimpleNamingContextBuilder();
 			// The activate() call will cause an assignment to the activated variable.
 			builder.activate();
 		}
-		return activated;
+		return builder;
 	}
 
 
@@ -195,7 +196,7 @@ public class SimpleNamingContextBuilder implements InitialContextFactoryBuilder 
 	 * @see SimpleNamingContext
 	 */
 	@Override
-	public InitialContextFactory createInitialContextFactory(Hashtable<?,?> environment) {
+	public InitialContextFactory createInitialContextFactory(@Nullable Hashtable<?,?> environment) {
 		if (activated == null && environment != null) {
 			Object icf = environment.get(Context.INITIAL_CONTEXT_FACTORY);
 			if (icf != null) {

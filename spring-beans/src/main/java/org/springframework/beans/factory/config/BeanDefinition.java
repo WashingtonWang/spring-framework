@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * @see #setFactoryBeanName
 	 * @see #setFactoryMethodName
 	 */
-	void setBeanClassName(String beanClassName);
+	void setBeanClassName(@Nullable String beanClassName);
 
 	/**
 	 * Return the current bean class name of this bean definition.
@@ -115,6 +115,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * @see #getFactoryBeanName()
 	 * @see #getFactoryMethodName()
 	 */
+	@Nullable
 	String getBeanClassName();
 
 	/**
@@ -122,7 +123,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * @see #SCOPE_SINGLETON
 	 * @see #SCOPE_PROTOTYPE
 	 */
-	void setScope(String scope);
+	void setScope(@Nullable String scope);
 
 	/**
 	 * Return the name of the current target scope for this bean,
@@ -148,11 +149,12 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * Set the names of the beans that this bean depends on being initialized.
 	 * The bean factory will guarantee that these beans get initialized first.
 	 */
-	void setDependsOn(String... dependsOn);
+	void setDependsOn(@Nullable String... dependsOn);
 
 	/**
 	 * Return the bean names that this bean depends on.
 	 */
+	@Nullable
 	String[] getDependsOn();
 
 	/**
@@ -186,7 +188,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * This the name of the bean to call the specified factory method on.
 	 * @see #setFactoryMethodName
 	 */
-	void setFactoryBeanName(String factoryBeanName);
+	void setFactoryBeanName(@Nullable String factoryBeanName);
 
 	/**
 	 * Return the factory bean name, if any.
@@ -202,7 +204,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * @see #setFactoryBeanName
 	 * @see #setBeanClassName
 	 */
-	void setFactoryMethodName(String factoryMethodName);
+	void setFactoryMethodName(@Nullable String factoryMethodName);
 
 	/**
 	 * Return a factory method, if any.
@@ -218,11 +220,27 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	ConstructorArgumentValues getConstructorArgumentValues();
 
 	/**
+	 * Return if there are constructor argument values defined for this bean.
+	 * @since 5.0.2
+	 */
+	default boolean hasConstructorArgumentValues() {
+		return !getConstructorArgumentValues().isEmpty();
+	}
+
+	/**
 	 * Return the property values to be applied to a new instance of the bean.
 	 * <p>The returned instance can be modified during bean factory post-processing.
 	 * @return the MutablePropertyValues object (never {@code null})
 	 */
 	MutablePropertyValues getPropertyValues();
+
+	/**
+	 * Return if there are property values values defined for this bean.
+	 * @since 5.0.2
+	 */
+	default boolean hasPropertyValues() {
+		return !getPropertyValues().isEmpty();
+	}
 
 
 	// Read-only attributes
@@ -237,6 +255,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	/**
 	 * Return whether this a <b>Prototype</b>, with an independent instance
 	 * returned for each call.
+	 * @since 3.0
 	 * @see #SCOPE_PROTOTYPE
 	 */
 	boolean isPrototype();
@@ -259,6 +278,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	/**
 	 * Return a human-readable description of this bean definition.
 	 */
+	@Nullable
 	String getDescription();
 
 	/**

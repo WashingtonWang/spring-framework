@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -139,12 +138,7 @@ class ExtendedBeanInfo implements BeanInfo {
 		// Sort non-void returning write methods to guard against the ill effects of
 		// non-deterministic sorting of methods returned from Class#getDeclaredMethods
 		// under JDK 7. See http://bugs.sun.com/view_bug.do?bug_id=7023180
-		Collections.sort(matches, new Comparator<Method>() {
-			@Override
-			public int compare(Method m1, Method m2) {
-				return m2.toString().compareTo(m1.toString());
-			}
-		});
+		matches.sort((m1, m2) -> m2.toString().compareTo(m1.toString()));
 		return matches;
 	}
 
@@ -267,12 +261,16 @@ class ExtendedBeanInfo implements BeanInfo {
 
 	static class SimplePropertyDescriptor extends PropertyDescriptor {
 
+		@Nullable
 		private Method readMethod;
 
+		@Nullable
 		private Method writeMethod;
 
+		@Nullable
 		private Class<?> propertyType;
 
+		@Nullable
 		private Class<?> propertyEditorClass;
 
 		public SimplePropertyDescriptor(PropertyDescriptor original) throws IntrospectionException {
@@ -288,22 +286,24 @@ class ExtendedBeanInfo implements BeanInfo {
 		}
 
 		@Override
+		@Nullable
 		public Method getReadMethod() {
 			return this.readMethod;
 		}
 
 		@Override
-		public void setReadMethod(Method readMethod) {
+		public void setReadMethod(@Nullable Method readMethod) {
 			this.readMethod = readMethod;
 		}
 
 		@Override
+		@Nullable
 		public Method getWriteMethod() {
 			return this.writeMethod;
 		}
 
 		@Override
-		public void setWriteMethod(Method writeMethod) {
+		public void setWriteMethod(@Nullable Method writeMethod) {
 			this.writeMethod = writeMethod;
 		}
 
@@ -321,12 +321,13 @@ class ExtendedBeanInfo implements BeanInfo {
 		}
 
 		@Override
+		@Nullable
 		public Class<?> getPropertyEditorClass() {
 			return this.propertyEditorClass;
 		}
 
 		@Override
-		public void setPropertyEditorClass(Class<?> propertyEditorClass) {
+		public void setPropertyEditorClass(@Nullable Class<?> propertyEditorClass) {
 			this.propertyEditorClass = propertyEditorClass;
 		}
 
@@ -351,18 +352,25 @@ class ExtendedBeanInfo implements BeanInfo {
 
 	static class SimpleIndexedPropertyDescriptor extends IndexedPropertyDescriptor {
 
+		@Nullable
 		private Method readMethod;
 
+		@Nullable
 		private Method writeMethod;
 
+		@Nullable
 		private Class<?> propertyType;
 
+		@Nullable
 		private Method indexedReadMethod;
 
+		@Nullable
 		private Method indexedWriteMethod;
 
+		@Nullable
 		private Class<?> indexedPropertyType;
 
+		@Nullable
 		private Class<?> propertyEditorClass;
 
 		public SimpleIndexedPropertyDescriptor(IndexedPropertyDescriptor original) throws IntrospectionException {
@@ -385,22 +393,24 @@ class ExtendedBeanInfo implements BeanInfo {
 		}
 
 		@Override
+		@Nullable
 		public Method getReadMethod() {
 			return this.readMethod;
 		}
 
 		@Override
-		public void setReadMethod(Method readMethod) {
+		public void setReadMethod(@Nullable Method readMethod) {
 			this.readMethod = readMethod;
 		}
 
 		@Override
+		@Nullable
 		public Method getWriteMethod() {
 			return this.writeMethod;
 		}
 
 		@Override
-		public void setWriteMethod(Method writeMethod) {
+		public void setWriteMethod(@Nullable Method writeMethod) {
 			this.writeMethod = writeMethod;
 		}
 
@@ -418,22 +428,24 @@ class ExtendedBeanInfo implements BeanInfo {
 		}
 
 		@Override
+		@Nullable
 		public Method getIndexedReadMethod() {
 			return this.indexedReadMethod;
 		}
 
 		@Override
-		public void setIndexedReadMethod(Method indexedReadMethod) throws IntrospectionException {
+		public void setIndexedReadMethod(@Nullable Method indexedReadMethod) throws IntrospectionException {
 			this.indexedReadMethod = indexedReadMethod;
 		}
 
 		@Override
+		@Nullable
 		public Method getIndexedWriteMethod() {
 			return this.indexedWriteMethod;
 		}
 
 		@Override
-		public void setIndexedWriteMethod(Method indexedWriteMethod) throws IntrospectionException {
+		public void setIndexedWriteMethod(@Nullable Method indexedWriteMethod) throws IntrospectionException {
 			this.indexedWriteMethod = indexedWriteMethod;
 		}
 
@@ -452,12 +464,13 @@ class ExtendedBeanInfo implements BeanInfo {
 		}
 
 		@Override
+		@Nullable
 		public Class<?> getPropertyEditorClass() {
 			return this.propertyEditorClass;
 		}
 
 		@Override
-		public void setPropertyEditorClass(Class<?> propertyEditorClass) {
+		public void setPropertyEditorClass(@Nullable Class<?> propertyEditorClass) {
 			this.propertyEditorClass = propertyEditorClass;
 		}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.beans.factory.xml;
 
 import org.w3c.dom.Element;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.lang.Nullable;
@@ -58,7 +59,7 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 	 * @see #doParse
 	 */
 	@Override
-	protected final AbstractBeanDefinition parseInternal(@Nullable Element element, @Nullable ParserContext parserContext) {
+	protected final AbstractBeanDefinition parseInternal(Element element, ParserContext parserContext) {
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition();
 		String parentName = getParentName(element);
 		if (parentName != null) {
@@ -75,9 +76,10 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 			}
 		}
 		builder.getRawBeanDefinition().setSource(parserContext.extractSource(element));
-		if (parserContext.isNested()) {
+		BeanDefinition containingBd = parserContext.getContainingBeanDefinition();
+		if (containingBd != null) {
 			// Inner bean definition must receive same scope as containing bean.
-			builder.setScope(parserContext.getContainingBeanDefinition().getScope());
+			builder.setScope(containingBd.getScope());
 		}
 		if (parserContext.isDefaultLazyInit()) {
 			// Default-lazy-init applies to custom bean definitions as well.

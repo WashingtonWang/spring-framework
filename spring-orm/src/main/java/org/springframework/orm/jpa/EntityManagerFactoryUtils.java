@@ -17,7 +17,6 @@
 package org.springframework.orm.jpa;
 
 import java.util.Map;
-
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -196,7 +195,8 @@ public abstract class EntityManagerFactoryUtils {
 	 */
 	@Nullable
 	public static EntityManager doGetTransactionalEntityManager(
-			EntityManagerFactory emf, @Nullable Map<?, ?> properties, boolean synchronizedWithTransaction) throws PersistenceException {
+			EntityManagerFactory emf, @Nullable Map<?, ?> properties, boolean synchronizedWithTransaction)
+			throws PersistenceException {
 
 		Assert.notNull(emf, "No EntityManagerFactory specified");
 
@@ -316,7 +316,7 @@ public abstract class EntityManagerFactoryUtils {
 	 * @param emf the EntityManagerFactory that the EntityManager has been created with
 	 * @see JpaDialect#cleanupTransaction
 	 */
-	private static void cleanupTransaction(Object transactionData, EntityManagerFactory emf) {
+	private static void cleanupTransaction(@Nullable Object transactionData, EntityManagerFactory emf) {
 		if (emf instanceof EntityManagerFactoryInfo) {
 			EntityManagerFactoryInfo emfInfo = (EntityManagerFactoryInfo) emf;
 			JpaDialect jpaDialect = emfInfo.getJpaDialect();
@@ -442,14 +442,16 @@ public abstract class EntityManagerFactoryUtils {
 			extends ResourceHolderSynchronization<EntityManagerHolder, EntityManagerFactory>
 			implements Ordered {
 
+		@Nullable
 		private final Object transactionData;
 
+		@Nullable
 		private final JpaDialect jpaDialect;
 
 		private final boolean newEntityManager;
 
 		public TransactionalEntityManagerSynchronization(
-				EntityManagerHolder emHolder, EntityManagerFactory emf, Object txData, boolean newEm) {
+				EntityManagerHolder emHolder, EntityManagerFactory emf, @Nullable Object txData, boolean newEm) {
 
 			super(emHolder, emf);
 			this.transactionData = txData;
@@ -478,12 +480,14 @@ public abstract class EntityManagerFactoryUtils {
 				em.flush();
 			}
 			catch (RuntimeException ex) {
+				DataAccessException dae;
 				if (this.jpaDialect != null) {
-					throw this.jpaDialect.translateExceptionIfPossible(ex);
+					dae = this.jpaDialect.translateExceptionIfPossible(ex);
 				}
 				else {
-					throw convertJpaAccessExceptionIfPossible(ex);
+					dae = convertJpaAccessExceptionIfPossible(ex);
 				}
+				throw (dae != null ? dae : ex);
 			}
 		}
 

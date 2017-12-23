@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
@@ -135,7 +137,9 @@ public class JettyXhrTransport extends AbstractXhrTransport implements Lifecycle
 		return executeRequest(url, HttpMethod.POST, headers, message.getPayload());
 	}
 
-	protected ResponseEntity<String> executeRequest(URI url, HttpMethod method, HttpHeaders headers, @Nullable String body) {
+	protected ResponseEntity<String> executeRequest(URI url, HttpMethod method,
+			HttpHeaders headers, @Nullable String body) {
+
 		Request httpRequest = this.httpClient.newRequest(url).method(method);
 		addHttpHeaders(httpRequest, headers);
 		if (body != null) {
@@ -157,9 +161,9 @@ public class JettyXhrTransport extends AbstractXhrTransport implements Lifecycle
 
 
 	private static void addHttpHeaders(Request request, HttpHeaders headers) {
-		for (String name : headers.keySet()) {
-			for (String value : headers.get(name)) {
-				request.header(name, value);
+		for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+			for (String value : entry.getValue()) {
+				request.header(entry.getKey(), value);
 			}
 		}
 	}

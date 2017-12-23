@@ -29,16 +29,23 @@ import java.util.OptionalLong;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpRange;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.HttpMessageReader;
 import org.springframework.http.codec.json.Jackson2CodecSupport;
+import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.lang.Nullable;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyExtractor;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebSession;
+import org.springframework.web.util.UriBuilder;
 
 /**
  * Represents a server-side HTTP request, as handled by a {@code HandlerFunction}.
@@ -53,8 +60,19 @@ public interface ServerRequest {
 
 	/**
 	 * Return the HTTP method.
+	 * @return the HTTP method as an HttpMethod enum value, or {@code null}
+	 * if not resolvable (e.g. in case of a non-standard HTTP method)
 	 */
-	HttpMethod method();
+	@Nullable
+	default HttpMethod method() {
+		return HttpMethod.resolve(methodName());
+	}
+
+	/**
+	 * Return the name of the HTTP method.
+	 * @return the HTTP method as a String
+	 */
+	String methodName();
 
 	/**
 	 * Return the request URI.
@@ -62,16 +80,38 @@ public interface ServerRequest {
 	URI uri();
 
 	/**
+	 * Return a {@code UriBuilderComponents}  from the URI associated with this
+	 * {@code ServerRequest}, while also overlaying with values from the headers
+	 * "Forwarded" (<a href="http://tools.ietf.org/html/rfc7239">RFC 7239</a>),
+	 * or "X-Forwarded-Host", "X-Forwarded-Port", and "X-Forwarded-Proto" if
+	 * "Forwarded" is not found.
+	 * @return a URI builder
+	 */
+	UriBuilder uriBuilder();
+
+	/**
 	 * Return the request path.
 	 */
 	default String path() {
-		return uri().getPath();
+		return uri().getRawPath();
+	}
+
+	/**
+	 * Return the request path as {@code PathContainer}.
+	 */
+	default PathContainer pathContainer() {
+		return PathContainer.parsePath(path());
 	}
 
 	/**
 	 * Return the headers of this request.
 	 */
 	Headers headers();
+
+	/**
+	 * Return the cookies of this request.
+	 */
+	MultiValueMap<String, HttpCookie> cookies();
 
 	/**
 	 * Extract the body with the given {@code BodyExtractor}.
@@ -101,6 +141,14 @@ public interface ServerRequest {
 	<T> Mono<T> bodyToMono(Class<? extends T> elementClass);
 
 	/**
+	 * Extract the body to a {@code Mono}.
+	 * @param typeReference a type reference describing the expected response request type
+	 * @param <T> the element type
+	 * @return a mono containing the body of the given type {@code T}
+	 */
+	<T> Mono<T> bodyToMono(ParameterizedTypeReference<T> typeReference);
+
+	/**
 	 * Extract the body to a {@code Flux}.
 	 * @param elementClass the class of element in the {@code Flux}
 	 * @param <T> the element type
@@ -109,12 +157,27 @@ public interface ServerRequest {
 	<T> Flux<T> bodyToFlux(Class<? extends T> elementClass);
 
 	/**
+	 * Extract the body to a {@code Flux}.
+	 * @param typeReference a type reference describing the expected request body type
+	 * @param <T> the element type
+	 * @return a flux containing the body of the given type {@code T}
+	 */
+	<T> Flux<T> bodyToFlux(ParameterizedTypeReference<T> typeReference);
+
+	/**
 	 * Return the request attribute value if present.
 	 * @param name the attribute name
-	 * @param <T> the attribute type
 	 * @return the attribute value
 	 */
-	<T> Optional<T> attribute(String name);
+	default Optional<Object> attribute(String name) {
+		Map<String, Object> attributes = attributes();
+		if (attributes.containsKey(name)) {
+			return Optional.of(attributes.get(name));
+		}
+		else {
+			return Optional.empty();
+		}
+	}
 
 	/**
 	 * Return a mutable map of request attributes.
@@ -128,12 +191,12 @@ public interface ServerRequest {
 	 * @return the parameter value
 	 */
 	default Optional<String> queryParam(String name) {
-		List<String> queryParams = this.queryParams(name);
-		if (queryParams.isEmpty()) {
+		List<String> queryParamValues = queryParams().get(name);
+		if (CollectionUtils.isEmpty(queryParamValues)) {
 			return Optional.empty();
 		}
 		else {
-			String value = queryParams.get(0);
+			String value = queryParamValues.get(0);
 			if (value == null) {
 				value = "";
 			}
@@ -142,12 +205,9 @@ public interface ServerRequest {
 	}
 
 	/**
-	 * Return all query parameter with the given name.
-	 * <p>Returns an empty list if no values could be found.
-	 * @param name the parameter name
-	 * @return the parameter values
+	 * Return all query parameters for this request.
 	 */
-	List<String> queryParams(String name);
+	MultiValueMap<String, String> queryParams();
 
 	/**
 	 * Return the path variable with the given name, if present.
@@ -166,13 +226,12 @@ public interface ServerRequest {
 	}
 
 	/**
-	 * Return all path variables for the current request.
-	 * @return a {@code Map} from path variable name to associated value
+	 * Return all path variables for this request.
 	 */
 	Map<String, String> pathVariables();
 
 	/**
-	 * Return the web session for the current request. Always guaranteed  to
+	 * Return the web session for this request. Always guaranteed to
 	 * return an instance either matching to the session id requested by the
 	 * client, or with a new session id either because the client did not
 	 * specify one or because the underlying session had expired. Use of this
@@ -241,6 +300,7 @@ public interface ServerRequest {
 		 * <p>If the header value does not contain a port, the returned
 		 * {@linkplain InetSocketAddress#getPort() port} will be {@code 0}.
 		 */
+		@Nullable
 		InetSocketAddress host();
 
 		/**

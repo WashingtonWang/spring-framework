@@ -54,6 +54,7 @@ public class SimpMessagingTemplate extends AbstractMessageSendingTemplate<String
 
 	private volatile long sendTimeout = -1;
 
+	@Nullable
 	private MessageHeaderInitializer headerInitializer;
 
 
@@ -111,13 +112,14 @@ public class SimpMessagingTemplate extends AbstractMessageSendingTemplate<String
 	 * messages created through the {@code SimpMessagingTemplate}.
 	 * <p>By default, this property is not set.
 	 */
-	public void setHeaderInitializer(MessageHeaderInitializer headerInitializer) {
+	public void setHeaderInitializer(@Nullable MessageHeaderInitializer headerInitializer) {
 		this.headerInitializer = headerInitializer;
 	}
 
 	/**
 	 * Return the configured header initializer.
 	 */
+	@Nullable
 	public MessageHeaderInitializer getHeaderInitializer() {
 		return this.headerInitializer;
 	}
@@ -203,22 +205,23 @@ public class SimpMessagingTemplate extends AbstractMessageSendingTemplate<String
 	}
 
 	@Override
-	public void convertAndSendToUser(String user, String destination, @Nullable Object payload,
+	public void convertAndSendToUser(String user, String destination, Object payload,
 			@Nullable Map<String, Object> headers) throws MessagingException {
 
 		convertAndSendToUser(user, destination, payload, headers, null);
 	}
 
 	@Override
-	public void convertAndSendToUser(String user, String destination, @Nullable Object payload,
-			MessagePostProcessor postProcessor) throws MessagingException {
+	public void convertAndSendToUser(String user, String destination, Object payload,
+			@Nullable MessagePostProcessor postProcessor) throws MessagingException {
 
 		convertAndSendToUser(user, destination, payload, null, postProcessor);
 	}
 
 	@Override
-	public void convertAndSendToUser(String user, String destination, Object payload, @Nullable Map<String, Object> headers,
-			@Nullable MessagePostProcessor postProcessor) throws MessagingException {
+	public void convertAndSendToUser(String user, String destination, Object payload,
+			@Nullable Map<String, Object> headers, @Nullable MessagePostProcessor postProcessor)
+			throws MessagingException {
 
 		Assert.notNull(user, "User must not be null");
 		user = StringUtils.replace(user, "/", "%2F");
@@ -228,7 +231,7 @@ public class SimpMessagingTemplate extends AbstractMessageSendingTemplate<String
 
 	/**
 	 * Creates a new map and puts the given headers under the key
-	 * {@link org.springframework.messaging.support.NativeMessageHeaderAccessor#NATIVE_HEADERS NATIVE_HEADERS NATIVE_HEADERS NATIVE_HEADERS}.
+	 * {@link NativeMessageHeaderAccessor#NATIVE_HEADERS NATIVE_HEADERS NATIVE_HEADERS NATIVE_HEADERS}.
 	 * effectively treats the input header map as headers to be sent out to the
 	 * destination.
 	 * <p>However if the given headers already contain the key

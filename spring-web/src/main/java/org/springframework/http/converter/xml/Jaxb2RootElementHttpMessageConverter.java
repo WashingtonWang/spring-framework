@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,9 +54,8 @@ import org.springframework.util.ClassUtils;
  * {@link XmlType}, and write classes annotated with {@link XmlRootElement},
  * or subclasses thereof.
  *
- * <p>Note that if using Spring's Marshaller/Unmarshaller abstractions from the
- * {@code spring-oxm} module you should can the
- * {@link MarshallingHttpMessageConverter} instead.
+ * <p>Note: When using Spring's Marshaller/Unmarshaller abstractions from {@code spring-oxm},
+ * you should use the {@link MarshallingHttpMessageConverter} instead.
  *
  * @author Arjen Poutsma
  * @author Sebastien Deleuze
@@ -140,8 +139,7 @@ public class Jaxb2RootElementHttpMessageConverter extends AbstractJaxb2HttpMessa
 		catch (NullPointerException ex) {
 			if (!isSupportDtd()) {
 				throw new HttpMessageNotReadableException("NPE while unmarshalling. " +
-						"This can happen on JDK 1.6 due to the presence of DTD " +
-						"declarations, which are disabled.", ex);
+						"This can happen due to the presence of DTD declarations which are disabled.", ex);
 			}
 			throw ex;
 		}
@@ -195,18 +193,14 @@ public class Jaxb2RootElementHttpMessageConverter extends AbstractJaxb2HttpMessa
 		}
 	}
 
-	private void setCharset(MediaType contentType, Marshaller marshaller) throws PropertyException {
+	private void setCharset(@Nullable MediaType contentType, Marshaller marshaller) throws PropertyException {
 		if (contentType != null && contentType.getCharset() != null) {
 			marshaller.setProperty(Marshaller.JAXB_ENCODING, contentType.getCharset().name());
 		}
 	}
 
 
-	private static final EntityResolver NO_OP_ENTITY_RESOLVER = new EntityResolver() {
-		@Override
-		public InputSource resolveEntity(String publicId, String systemId) {
-			return new InputSource(new StringReader(""));
-		}
-	};
+	private static final EntityResolver NO_OP_ENTITY_RESOLVER =
+			(publicId, systemId) -> new InputSource(new StringReader(""));
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 /**
  * Abstract base class for JDBC {@link javax.sql.DataSource} implementations
@@ -34,16 +33,22 @@ import org.springframework.util.Assert;
  */
 public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 
+	@Nullable
 	private String url;
 
+	@Nullable
 	private String username;
 
+	@Nullable
 	private String password;
 
+	@Nullable
 	private String catalog;
 
+	@Nullable
 	private String schema;
 
+	@Nullable
 	private Properties connectionProperties;
 
 
@@ -51,14 +56,14 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * Set the JDBC URL to use for connecting through the Driver.
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	public void setUrl(String url) {
-		Assert.hasText(url, "Property 'url' must not be empty");
-		this.url = url.trim();
+	public void setUrl(@Nullable String url) {
+		this.url = (url != null ? url.trim() : null);
 	}
 
 	/**
 	 * Return the JDBC URL to use for connecting through the Driver.
 	 */
+	@Nullable
 	public String getUrl() {
 		return this.url;
 	}
@@ -67,13 +72,14 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * Set the JDBC username to use for connecting through the Driver.
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	public void setUsername(String username) {
+	public void setUsername(@Nullable String username) {
 		this.username = username;
 	}
 
 	/**
 	 * Return the JDBC username to use for connecting through the Driver.
 	 */
+	@Nullable
 	public String getUsername() {
 		return this.username;
 	}
@@ -82,13 +88,14 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * Set the JDBC password to use for connecting through the Driver.
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	public void setPassword(String password) {
+	public void setPassword(@Nullable String password) {
 		this.password = password;
 	}
 
 	/**
 	 * Return the JDBC password to use for connecting through the Driver.
 	 */
+	@Nullable
 	public String getPassword() {
 		return this.password;
 	}
@@ -98,7 +105,7 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * @since 4.3.2
 	 * @see Connection#setCatalog
 	 */
-	public void setCatalog(String catalog) {
+	public void setCatalog(@Nullable String catalog) {
 		this.catalog = catalog;
 	}
 
@@ -116,7 +123,7 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * @since 4.3.2
 	 * @see Connection#setSchema
 	 */
-	public void setSchema(String schema) {
+	public void setSchema(@Nullable String schema) {
 		this.schema = schema;
 	}
 
@@ -137,7 +144,7 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * DataSource will override the corresponding connection properties.
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	public void setConnectionProperties(Properties connectionProperties) {
+	public void setConnectionProperties(@Nullable Properties connectionProperties) {
 		this.connectionProperties = connectionProperties;
 	}
 

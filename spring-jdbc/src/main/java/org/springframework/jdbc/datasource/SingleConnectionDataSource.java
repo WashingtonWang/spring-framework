@@ -58,12 +58,15 @@ public class SingleConnectionDataSource extends DriverManagerDataSource implemen
 	private boolean suppressClose;
 
 	/** Override auto-commit state? */
+	@Nullable
 	private Boolean autoCommit;
 
 	/** Wrapped Connection */
+	@Nullable
 	private Connection target;
 
 	/** Proxy Connection */
+	@Nullable
 	private Connection connection;
 
 	/** Synchronization monitor for the shared Connection */
@@ -292,6 +295,7 @@ public class SingleConnectionDataSource extends DriverManagerDataSource implemen
 		}
 
 		@Override
+		@Nullable
 		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 			// Invocation on ConnectionProxy interface coming in...
 

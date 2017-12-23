@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,9 @@ public class MessageSourceAccessor {
 
 	private final MessageSource messageSource;
 
+	@Nullable
 	private final Locale defaultLocale;
+
 
 	/**
 	 * Create a new MessageSourceAccessor, using LocaleContextHolder's locale
@@ -62,6 +64,7 @@ public class MessageSourceAccessor {
 		this.defaultLocale = defaultLocale;
 	}
 
+
 	/**
 	 * Return the default locale to use if no explicit locale has been given.
 	 * <p>The default implementation returns the default locale passed into the
@@ -81,7 +84,8 @@ public class MessageSourceAccessor {
 	 * @return the message
 	 */
 	public String getMessage(String code, String defaultMessage) {
-		return this.messageSource.getMessage(code, null, defaultMessage, getDefaultLocale());
+		String msg = this.messageSource.getMessage(code, null, defaultMessage, getDefaultLocale());
+		return (msg != null ? msg : "");
 	}
 
 	/**
@@ -92,7 +96,8 @@ public class MessageSourceAccessor {
 	 * @return the message
 	 */
 	public String getMessage(String code, String defaultMessage, Locale locale) {
-		return this.messageSource.getMessage(code, null, defaultMessage, locale);
+		String msg = this.messageSource.getMessage(code, null, defaultMessage, locale);
+		return (msg != null ? msg : "");
 	}
 
 	/**
@@ -103,7 +108,8 @@ public class MessageSourceAccessor {
 	 * @return the message
 	 */
 	public String getMessage(String code, @Nullable Object[] args, String defaultMessage) {
-		return this.messageSource.getMessage(code, args, defaultMessage, getDefaultLocale());
+		String msg = this.messageSource.getMessage(code, args, defaultMessage, getDefaultLocale());
+		return (msg != null ? msg : "");
 	}
 
 	/**
@@ -115,7 +121,8 @@ public class MessageSourceAccessor {
 	 * @return the message
 	 */
 	public String getMessage(String code, @Nullable Object[] args, String defaultMessage, Locale locale) {
-		return this.messageSource.getMessage(code, args, defaultMessage, locale);
+		String msg = this.messageSource.getMessage(code, args, defaultMessage, locale);
+		return (msg != null ? msg : "");
 	}
 
 	/**

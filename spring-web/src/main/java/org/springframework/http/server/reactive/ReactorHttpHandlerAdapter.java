@@ -27,6 +27,7 @@ import reactor.ipc.netty.http.server.HttpServerResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
+import org.springframework.http.HttpMethod;
 import org.springframework.util.Assert;
 
 /**
@@ -54,8 +55,8 @@ public class ReactorHttpHandlerAdapter
 	public Mono<Void> apply(HttpServerRequest request, HttpServerResponse response) {
 
 		NettyDataBufferFactory bufferFactory = new NettyDataBufferFactory(response.alloc());
-		ReactorServerHttpRequest adaptedRequest;
-		ReactorServerHttpResponse adaptedResponse;
+		ServerHttpRequest adaptedRequest;
+		ServerHttpResponse adaptedResponse;
 		try {
 			adaptedRequest = new ReactorServerHttpRequest(request, bufferFactory);
 			adaptedResponse = new ReactorServerHttpResponse(response, bufferFactory);
@@ -66,13 +67,13 @@ public class ReactorHttpHandlerAdapter
 			return Mono.empty();
 		}
 
+		if (HttpMethod.HEAD.equals(adaptedRequest.getMethod())) {
+			adaptedResponse = new HttpHeadResponseDecorator(adaptedResponse);
+		}
+
 		return this.httpHandler.handle(adaptedRequest, adaptedResponse)
-				.onErrorResume(ex -> {
-					logger.error("Could not complete request", ex);
-					response.status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-					return Mono.empty();
-				})
-				.doOnSuccess(aVoid -> logger.debug("Successfully completed request"));
+				.doOnError(ex -> logger.error("Handling completed with error", ex))
+				.doOnSuccess(aVoid -> logger.debug("Handling completed with success"));
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,15 +39,17 @@ import org.springframework.lang.Nullable;
  */
 public class JodaTimeContext {
 
+	@Nullable
 	private Chronology chronology;
 
+	@Nullable
 	private DateTimeZone timeZone;
 
 
 	/**
 	 * Set the user's chronology (calendar system).
 	 */
-	public void setChronology(Chronology chronology) {
+	public void setChronology(@Nullable Chronology chronology) {
 		this.chronology = chronology;
 	}
 
@@ -67,7 +69,7 @@ public class JodaTimeContext {
 	 * @see org.springframework.context.i18n.LocaleContextHolder#getTimeZone()
 	 * @see org.springframework.context.i18n.LocaleContextHolder#setLocaleContext
 	 */
-	public void setTimeZone(DateTimeZone timeZone) {
+	public void setTimeZone(@Nullable DateTimeZone timeZone) {
 		this.timeZone = timeZone;
 	}
 

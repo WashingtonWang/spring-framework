@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.web.util.pattern.PatternParseException.PatternMessage;
 
 /**
@@ -31,19 +33,10 @@ import org.springframework.web.util.pattern.PatternParseException.PatternMessage
  */
 class InternalPathPatternParser {
 
-	// The expected path separator to split path elements during parsing
-	char separator = PathPatternParser.DEFAULT_SEPARATOR;
+	private final PathPatternParser parser;
 
-	// Is the parser producing case sensitive PathPattern matchers
-	boolean caseSensitive = true;
-
-	// If true the PathPatterns produced by the parser will allow patterns
-	// that don't have a trailing slash to match paths that may or may not
-	// have a trailing slash
-	private boolean matchOptionalTrailingSlash = false;
-	
 	// The input data for parsing
-	private char[] pathPatternData;
+	private char[] pathPatternData = new char[0];
 
 	// The length of the input data
 	private int pathPatternLength;
@@ -68,46 +61,41 @@ class InternalPathPatternParser {
 	private int variableCaptureCount = 0;
 
 	// Start of the most recent path element in a particular path element
-	int pathElementStart;
+	private int pathElementStart;
 
 	// Start of the most recent variable capture in a particular path element
-	int variableCaptureStart;
+	private int variableCaptureStart;
 
 	// Variables captures in this path pattern
-	List<String> capturedVariableNames;
+	@Nullable
+	private List<String> capturedVariableNames;
 
 	// The head of the path element chain currently being built
-	PathElement headPE;
+	@Nullable
+	private PathElement headPE;
 
 	// The most recently constructed path element in the chain
-	PathElement currentPE;
+	@Nullable
+	private PathElement currentPE;
 
 
 	/**
-	 * @param separator the path separator to look for when parsing
-	 * @param caseSensitive true if PathPatterns should be sensitive to case
-	 * @param matchOptionalTrailingSlash true if patterns without a trailing slash
-	 * can match paths that do have a trailing slash
+	 * Package private constructor for use in {@link PathPatternParser#parse}.
+	 * @param parentParser reference back to the stateless, public parser
 	 */
-	public InternalPathPatternParser(char separator, boolean caseSensitive, boolean matchOptionalTrailingSlash) {
-		this.separator = separator;
-		this.caseSensitive = caseSensitive;
-		this.matchOptionalTrailingSlash = matchOptionalTrailingSlash;
+	InternalPathPatternParser(PathPatternParser parentParser) {
+		this.parser = parentParser;
 	}
 
 
 	/**
-	 * Process the path pattern data, a character at a time, breaking it into
-	 * path elements around separator boundaries and verifying the structure at each
-	 * stage. Produces a PathPattern object that can be used for fast matching
-	 * against paths.
-	 * @param pathPattern the input path pattern, e.g. /foo/{bar}
-	 * @return a PathPattern for quickly matching paths against the specified path pattern
-	 * @throws PatternParseException in case of parse errors
+	 * Package private delegate for {@link PathPatternParser#parse(String)}.
 	 */
 	public PathPattern parse(String pathPattern) throws PatternParseException {
+		Assert.notNull(pathPattern, "Path pattern must not be null");
+
 		this.pathPatternData = pathPattern.toCharArray();
-		this.pathPatternLength = pathPatternData.length;
+		this.pathPatternLength = this.pathPatternData.length;
 		this.headPE = null;
 		this.currentPE = null;
 		this.capturedVariableNames = null;
@@ -117,16 +105,16 @@ class InternalPathPatternParser {
 
 		while (this.pos < this.pathPatternLength) {
 			char ch = this.pathPatternData[this.pos];
-			if (ch == this.separator) {
+			if (ch == this.parser.getSeparator()) {
 				if (this.pathElementStart != -1) {
 					pushPathElement(createPathElement());
 				}
 				if (peekDoubleWildcard()) {
-					pushPathElement(new WildcardTheRestPathElement(this.pos, this.separator));
+					pushPathElement(new WildcardTheRestPathElement(this.pos, this.parser.getSeparator()));
 					this.pos += 2;
 				}
 				else {
-					pushPathElement(new SeparatorPathElement(this.pos, this.separator));
+					pushPathElement(new SeparatorPathElement(this.pos, this.parser.getSeparator()));
 				}
 			}
 			else {
@@ -162,7 +150,7 @@ class InternalPathPatternParser {
 					this.variableCaptureCount++;
 				}
 				else if (ch == ':') {
-					if (this.insideVariableCapture) {
+					if (this.insideVariableCapture && !this.isCaptureTheRestVariable) {
 						skipCaptureRegex();
 						this.insideVariableCapture = false;
 						this.variableCaptureCount++;
@@ -198,8 +186,7 @@ class InternalPathPatternParser {
 		if (this.pathElementStart != -1) {
 			pushPathElement(createPathElement());
 		}
-		return new PathPattern(
-				pathPattern, this.headPE, this.separator, this.caseSensitive, this.matchOptionalTrailingSlash);
+		return new PathPattern(pathPattern, this.parser, this.headPE);
 	}
 
 	/**
@@ -236,7 +223,7 @@ class InternalPathPatternParser {
 				}
 				curlyBracketDepth--;
 			}
-			if (ch == this.separator && !previousBackslash) {
+			if (ch == this.parser.getSeparator() && !previousBackslash) {
 				throw new PatternParseException(this.pos, this.pathPatternData,
 						PatternMessage.MISSING_CLOSE_CAPTURE);
 			}
@@ -295,7 +282,7 @@ class InternalPathPatternParser {
 				this.headPE = newPathElement;
 				this.currentPE = newPathElement;
 			}
-			else {
+			else if (this.currentPE != null) {
 				this.currentPE.next = newPathElement;
 				newPathElement.prev = this.currentPE;
 				this.currentPE = newPathElement;
@@ -303,6 +290,13 @@ class InternalPathPatternParser {
 		}
 
 		resetPathElementState();
+	}
+	
+	private char[] getPathElementText() {
+		char[] pathElementText = new char[this.pos - this.pathElementStart];
+		System.arraycopy(this.pathPatternData, this.pathElementStart, pathElementText, 0,
+				this.pos - this.pathElementStart);
+		return pathElementText;
 	}
 
 	/**
@@ -314,10 +308,7 @@ class InternalPathPatternParser {
 		if (this.insideVariableCapture) {
 			throw new PatternParseException(this.pos, this.pathPatternData, PatternMessage.MISSING_CLOSE_CAPTURE);
 		}
-
-		char[] pathElementText = new char[this.pos - this.pathElementStart];
-		System.arraycopy(this.pathPatternData, this.pathElementStart, pathElementText, 0,
-				this.pos - this.pathElementStart);
+		
 		PathElement newPE = null;
 
 		if (this.variableCaptureCount > 0) {
@@ -325,13 +316,14 @@ class InternalPathPatternParser {
 					this.pathPatternData[this.pos - 1] == '}') {
 				if (this.isCaptureTheRestVariable) {
 					// It is {*....}
-					newPE = new CaptureTheRestPathElement(pathElementStart, pathElementText, separator);
+					newPE = new CaptureTheRestPathElement(
+							this.pathElementStart, getPathElementText(), this.parser.getSeparator());
 				}
 				else {
 					// It is a full capture of this element (possibly with constraint), for example: /foo/{abc}/
 					try {
-						newPE = new CaptureVariablePathElement(this.pathElementStart, pathElementText,
-								this.caseSensitive, this.separator);
+						newPE = new CaptureVariablePathElement(this.pathElementStart, getPathElementText(),
+								this.parser.isCaseSensitive(), this.parser.getSeparator());
 					}
 					catch (PatternSyntaxException pse) {
 						throw new PatternParseException(pse,
@@ -347,8 +339,9 @@ class InternalPathPatternParser {
 					throw new PatternParseException(this.pathElementStart, this.pathPatternData,
 							PatternMessage.CAPTURE_ALL_IS_STANDALONE_CONSTRUCT);
 				}
-				RegexPathElement newRegexSection = new RegexPathElement(this.pathElementStart, pathElementText,
-						this.caseSensitive, this.pathPatternData, this.separator);
+				RegexPathElement newRegexSection = new RegexPathElement(this.pathElementStart, 
+						getPathElementText(), this.parser.isCaseSensitive(),
+						this.pathPatternData, this.parser.getSeparator());
 				for (String variableName : newRegexSection.getVariableNames()) {
 					recordCapturedVariable(this.pathElementStart, variableName);
 				}
@@ -358,20 +351,20 @@ class InternalPathPatternParser {
 		else {
 			if (this.wildcard) {
 				if (this.pos - 1 == this.pathElementStart) {
-					newPE = new WildcardPathElement(this.pathElementStart, this.separator);
+					newPE = new WildcardPathElement(this.pathElementStart, this.parser.getSeparator());
 				}
 				else {
-					newPE = new RegexPathElement(this.pathElementStart, pathElementText,
-							this.caseSensitive, this.pathPatternData, this.separator);
+					newPE = new RegexPathElement(this.pathElementStart, getPathElementText(),
+							this.parser.isCaseSensitive(), this.pathPatternData, this.parser.getSeparator());
 				}
 			}
 			else if (this.singleCharWildcardCount != 0) {
-				newPE = new SingleCharWildcardedPathElement(this.pathElementStart, pathElementText,
-						this.singleCharWildcardCount, this.caseSensitive, this.separator);
+				newPE = new SingleCharWildcardedPathElement(this.pathElementStart, getPathElementText(),
+						this.singleCharWildcardCount, this.parser.isCaseSensitive(), this.parser.getSeparator());
 			}
 			else {
-				newPE = new LiteralPathElement(this.pathElementStart, pathElementText,
-						this.caseSensitive, this.separator);
+				newPE = new LiteralPathElement(this.pathElementStart, getPathElementText(),
+						this.parser.isCaseSensitive(), this.parser.getSeparator());
 			}
 		}
 

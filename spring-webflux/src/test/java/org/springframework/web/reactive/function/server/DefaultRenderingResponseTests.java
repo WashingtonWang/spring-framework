@@ -28,11 +28,19 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.mock.http.server.reactive.test.MockServerHttpRequest;
-import org.springframework.mock.http.server.reactive.test.MockServerWebExchange;
+import org.springframework.mock.web.test.server.MockServerWebExchange;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.result.view.AbstractView;
 import org.springframework.web.reactive.result.view.View;
 import org.springframework.web.reactive.result.view.ViewResolver;
+import org.springframework.web.reactive.result.view.ViewResolverSupport;
+import org.springframework.web.server.ServerWebExchange;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 /**
@@ -104,11 +112,24 @@ public class DefaultRenderingResponseTests {
 	}
 
 	@Test
+	public void cookies() throws Exception {
+		MultiValueMap<String, ResponseCookie> newCookies = new LinkedMultiValueMap<>();
+		newCookies.add("name", ResponseCookie.from("name", "value").build());
+		Mono<RenderingResponse> result =
+				RenderingResponse.create("foo").cookies(cookies -> cookies.addAll(newCookies)).build();
+		StepVerifier.create(result)
+				.expectNextMatches(response -> newCookies.equals(response.cookies()))
+				.expectComplete()
+				.verify();
+	}
+
+
+	@Test
 	public void render() throws Exception {
 		Map<String, Object> model = Collections.singletonMap("foo", "bar");
 		Mono<RenderingResponse> result = RenderingResponse.create("view").modelAttributes(model).build();
 
-		MockServerWebExchange exchange = MockServerHttpRequest.get("http://localhost").toExchange();
+		MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("http://localhost"));
 		ViewResolver viewResolver = mock(ViewResolver.class);
 		View view = mock(View.class);
 		when(viewResolver.resolveViewName("view", Locale.ENGLISH)).thenReturn(Mono.just(view));
@@ -125,6 +146,39 @@ public class DefaultRenderingResponseTests {
 						model.equals(response.model()))
 				.expectComplete()
 				.verify();
+	}
+
+	@Test
+	public void defaultContentType() throws Exception {
+		Mono<RenderingResponse> result = RenderingResponse.create("view").build();
+
+		MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("http://localhost"));
+		TestView view = new TestView();
+		ViewResolver viewResolver = mock(ViewResolver.class);
+		when(viewResolver.resolveViewName(any(), any())).thenReturn(Mono.just(view));
+
+		List<ViewResolver> viewResolvers = new ArrayList<>();
+		viewResolvers.add(viewResolver);
+
+		ServerResponse.Context context = mock(ServerResponse.Context.class);
+		when(context.viewResolvers()).thenReturn(viewResolvers);
+
+		StepVerifier.create(result.flatMap(response -> response.writeTo(exchange, context)))
+				.verifyComplete();
+
+		assertEquals(ViewResolverSupport.DEFAULT_CONTENT_TYPE, exchange.getResponse().getHeaders().getContentType());
+	}
+
+
+	private static class TestView extends AbstractView {
+
+		@Override
+		protected Mono<Void> renderInternal(Map<String, Object> renderAttributes,
+				MediaType contentType, ServerWebExchange exchange) {
+
+			return Mono.empty();
+		}
+
 	}
 
 }

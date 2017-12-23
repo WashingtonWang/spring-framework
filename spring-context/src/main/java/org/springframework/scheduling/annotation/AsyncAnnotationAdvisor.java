@@ -77,7 +77,7 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 	 * @see AnnotationAsyncExecutionInterceptor#getDefaultExecutor(BeanFactory)
 	 */
 	@SuppressWarnings("unchecked")
-	public AsyncAnnotationAdvisor(@Nullable Executor executor, AsyncUncaughtExceptionHandler exceptionHandler) {
+	public AsyncAnnotationAdvisor(@Nullable Executor executor, @Nullable AsyncUncaughtExceptionHandler exceptionHandler) {
 		Set<Class<? extends Annotation>> asyncAnnotationTypes = new LinkedHashSet<>(2);
 		asyncAnnotationTypes.add(Async.class);
 		try {
@@ -143,7 +143,7 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 	}
 
 
-	protected Advice buildAdvice(Executor executor, AsyncUncaughtExceptionHandler exceptionHandler) {
+	protected Advice buildAdvice(@Nullable Executor executor, AsyncUncaughtExceptionHandler exceptionHandler) {
 		return new AnnotationAsyncExecutionInterceptor(executor, exceptionHandler);
 	}
 
@@ -152,7 +152,6 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 	 * @param asyncAnnotationTypes the async annotation types to introspect
 	 * @return the applicable Pointcut object, or {@code null} if none
 	 */
-	@Nullable
 	protected Pointcut buildPointcut(Set<Class<? extends Annotation>> asyncAnnotationTypes) {
 		ComposablePointcut result = null;
 		for (Class<? extends Annotation> asyncAnnotationType : asyncAnnotationTypes) {
@@ -166,7 +165,7 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 			}
 			result = result.union(mpc);
 		}
-		return result;
+		return (result != null ? result : Pointcut.TRUE);
 	}
 
 }

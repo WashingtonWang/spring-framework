@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ public class BindException extends Exception implements BindingResult {
 	}
 
 	@Override
-	public void setNestedPath(@Nullable String nestedPath) {
+	public void setNestedPath(String nestedPath) {
 		this.bindingResult.setNestedPath(nestedPath);
 	}
 
@@ -171,6 +171,7 @@ public class BindException extends Exception implements BindingResult {
 	}
 
 	@Override
+	@Nullable
 	public ObjectError getGlobalError() {
 		return this.bindingResult.getGlobalError();
 	}
@@ -191,6 +192,7 @@ public class BindException extends Exception implements BindingResult {
 	}
 
 	@Override
+	@Nullable
 	public FieldError getFieldError() {
 		return this.bindingResult.getFieldError();
 	}
@@ -211,17 +213,20 @@ public class BindException extends Exception implements BindingResult {
 	}
 
 	@Override
+	@Nullable
 	public FieldError getFieldError(String field) {
 		return this.bindingResult.getFieldError(field);
 	}
 
 	@Override
+	@Nullable
 	public Object getFieldValue(String field) {
 		return this.bindingResult.getFieldValue(field);
 	}
 
 	@Override
-	public Class<?> getFieldType(@Nullable String field) {
+	@Nullable
+	public Class<?> getFieldType(String field) {
 		return this.bindingResult.getFieldType(field);
 	}
 
@@ -236,6 +241,7 @@ public class BindException extends Exception implements BindingResult {
 	}
 
 	@Override
+	@Nullable
 	public Object getRawFieldValue(String field) {
 		return this.bindingResult.getRawFieldValue(field);
 	}

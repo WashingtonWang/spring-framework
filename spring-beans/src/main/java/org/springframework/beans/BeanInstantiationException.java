@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +33,10 @@ public class BeanInstantiationException extends FatalBeanException {
 
 	private Class<?> beanClass;
 
+	@Nullable
 	private Constructor<?> constructor;
 
+	@Nullable
 	private Method constructingMethod;
 
 
@@ -53,7 +55,7 @@ public class BeanInstantiationException extends FatalBeanException {
 	 * @param msg the detail message
 	 * @param cause the root cause
 	 */
-	public BeanInstantiationException(Class<?> beanClass, String msg, Throwable cause) {
+	public BeanInstantiationException(Class<?> beanClass, String msg, @Nullable Throwable cause) {
 		super("Failed to instantiate [" + beanClass.getName() + "]: " + msg, cause);
 		this.beanClass = beanClass;
 	}
@@ -65,7 +67,7 @@ public class BeanInstantiationException extends FatalBeanException {
 	 * @param cause the root cause
 	 * @since 4.3
 	 */
-	public BeanInstantiationException(Constructor<?> constructor, String msg, Throwable cause) {
+	public BeanInstantiationException(Constructor<?> constructor, String msg, @Nullable Throwable cause) {
 		super("Failed to instantiate [" + constructor.getDeclaringClass().getName() + "]: " + msg, cause);
 		this.beanClass = constructor.getDeclaringClass();
 		this.constructor = constructor;
@@ -79,7 +81,7 @@ public class BeanInstantiationException extends FatalBeanException {
 	 * @param cause the root cause
 	 * @since 4.3
 	 */
-	public BeanInstantiationException(Method constructingMethod, String msg, Throwable cause) {
+	public BeanInstantiationException(Method constructingMethod, String msg, @Nullable Throwable cause) {
 		super("Failed to instantiate [" + constructingMethod.getReturnType().getName() + "]: " + msg, cause);
 		this.beanClass = constructingMethod.getReturnType();
 		this.constructingMethod = constructingMethod;

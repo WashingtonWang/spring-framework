@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.FlashMap;
 import org.springframework.web.servlet.FlashMapManager;
 import org.springframework.web.util.UrlPathHelper;
-
 
 /**
  * A base class for {@link FlashMapManager} implementations.
@@ -89,6 +88,7 @@ public abstract class AbstractFlashMapManager implements FlashMapManager {
 
 
 	@Override
+	@Nullable
 	public final FlashMap retrieveAndUpdate(HttpServletRequest request, HttpServletResponse response) {
 		List<FlashMap> allFlashMaps = retrieveFlashMaps(request);
 		if (CollectionUtils.isEmpty(allFlashMaps)) {
@@ -226,7 +226,8 @@ public abstract class AbstractFlashMapManager implements FlashMapManager {
 		}
 	}
 
-	private String decodeAndNormalizePath(String path, HttpServletRequest request) {
+	@Nullable
+	private String decodeAndNormalizePath(@Nullable String path, HttpServletRequest request) {
 		if (path != null) {
 			path = getUrlPathHelper().decodeRequestString(request, path);
 			if (path.charAt(0) != '/') {

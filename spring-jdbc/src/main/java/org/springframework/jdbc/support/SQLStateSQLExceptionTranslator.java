@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,6 +88,7 @@ public class SQLStateSQLExceptionTranslator extends AbstractFallbackSQLException
 
 
 	@Override
+	@Nullable
 	protected DataAccessException doTranslate(String task, @Nullable String sql, SQLException ex) {
 		// First, the getSQLState check...
 		String sqlState = getSqlState(ex);
@@ -97,7 +98,7 @@ public class SQLStateSQLExceptionTranslator extends AbstractFallbackSQLException
 				logger.debug("Extracted SQL state class '" + classCode + "' from value '" + sqlState + "'");
 			}
 			if (BAD_SQL_GRAMMAR_CODES.contains(classCode)) {
-				return new BadSqlGrammarException(task, sql, ex);
+				return new BadSqlGrammarException(task, (sql != null ? sql : ""), ex);
 			}
 			else if (DATA_INTEGRITY_VIOLATION_CODES.contains(classCode)) {
 				return new DataIntegrityViolationException(buildMessage(task, sql, ex), ex);
@@ -131,6 +132,7 @@ public class SQLStateSQLExceptionTranslator extends AbstractFallbackSQLException
 	 * is to be extracted
 	 * @return the SQL state code
 	 */
+	@Nullable
 	private String getSqlState(SQLException ex) {
 		String sqlState = ex.getSQLState();
 		if (sqlState == null) {

@@ -64,8 +64,10 @@ import org.springframework.util.ObjectUtils;
  */
 public abstract class AbstractMessageSource extends MessageSourceSupport implements HierarchicalMessageSource {
 
+	@Nullable
 	private MessageSource parentMessageSource;
 
+	@Nullable
 	private Properties commonMessages;
 
 	private boolean useCodeAsDefaultMessage = false;
@@ -77,6 +79,7 @@ public abstract class AbstractMessageSource extends MessageSourceSupport impleme
 	}
 
 	@Override
+	@Nullable
 	public MessageSource getParentMessageSource() {
 		return this.parentMessageSource;
 	}
@@ -87,7 +90,7 @@ public abstract class AbstractMessageSource extends MessageSourceSupport impleme
 	 * <p>May also link to an externally defined Properties object, e.g. defined
 	 * through a {@link org.springframework.beans.factory.config.PropertiesFactoryBean}.
 	 */
-	public void setCommonMessages(Properties commonMessages) {
+	public void setCommonMessages(@Nullable Properties commonMessages) {
 		this.commonMessages = commonMessages;
 	}
 
@@ -140,10 +143,7 @@ public abstract class AbstractMessageSource extends MessageSourceSupport impleme
 			return msg;
 		}
 		if (defaultMessage == null) {
-			String fallback = getDefaultMessage(code);
-			if (fallback != null) {
-				return fallback;
-			}
+			return getDefaultMessage(code);
 		}
 		return renderDefaultMessage(defaultMessage, args, locale);
 	}
@@ -176,7 +176,7 @@ public abstract class AbstractMessageSource extends MessageSourceSupport impleme
 		if (defaultMessage != null) {
 			return defaultMessage;
 		}
-		throw new NoSuchMessageException(!ObjectUtils.isEmpty(codes) ? codes[codes.length - 1] : null, locale);
+		throw new NoSuchMessageException(!ObjectUtils.isEmpty(codes) ? codes[codes.length - 1] : "", locale);
 	}
 
 
@@ -195,7 +195,7 @@ public abstract class AbstractMessageSource extends MessageSourceSupport impleme
 	 * @see #setUseCodeAsDefaultMessage
 	 */
 	@Nullable
-	protected String getMessageInternal(String code, Object[] args, Locale locale) {
+	protected String getMessageInternal(@Nullable String code, @Nullable Object[] args, @Nullable Locale locale) {
 		if (code == null) {
 			return null;
 		}
@@ -252,7 +252,7 @@ public abstract class AbstractMessageSource extends MessageSourceSupport impleme
 	 * @see #getParentMessageSource()
 	 */
 	@Nullable
-	protected String getMessageFromParent(String code, Object[] args, Locale locale) {
+	protected String getMessageFromParent(String code, @Nullable Object[] args, Locale locale) {
 		MessageSource parent = getParentMessageSource();
 		if (parent != null) {
 			if (parent instanceof AbstractMessageSource) {
@@ -262,6 +262,7 @@ public abstract class AbstractMessageSource extends MessageSourceSupport impleme
 			}
 			else {
 				// Check parent MessageSource, returning null if not found there.
+				// Covers custom MessageSource impls and DelegatingMessageSource.
 				return parent.getMessage(code, args, null, locale);
 			}
 		}
@@ -323,9 +324,9 @@ public abstract class AbstractMessageSource extends MessageSourceSupport impleme
 	 * @return an array of arguments with any MessageSourceResolvables resolved
 	 */
 	@Override
-	protected Object[] resolveArguments(Object[] args, Locale locale) {
-		if (args == null) {
-			return new Object[0];
+	protected Object[] resolveArguments(@Nullable Object[] args, Locale locale) {
+		if (ObjectUtils.isEmpty(args)) {
+			return super.resolveArguments(args, locale);
 		}
 		List<Object> resolvedArgs = new ArrayList<>(args.length);
 		for (Object arg : args) {

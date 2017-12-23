@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,6 +62,7 @@ final class MapToMapConverter implements ConditionalGenericConverter {
 
 	@Override
 	@SuppressWarnings("unchecked")
+	@Nullable
 	public Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
 		if (source == null) {
 			return null;
@@ -113,14 +114,16 @@ final class MapToMapConverter implements ConditionalGenericConverter {
 				targetType.getMapValueTypeDescriptor(), this.conversionService);
 	}
 
-	private Object convertKey(Object sourceKey, TypeDescriptor sourceType, TypeDescriptor targetType) {
+	@Nullable
+	private Object convertKey(Object sourceKey, TypeDescriptor sourceType, @Nullable TypeDescriptor targetType) {
 		if (targetType == null) {
 			return sourceKey;
 		}
 		return this.conversionService.convert(sourceKey, sourceType.getMapKeyTypeDescriptor(sourceKey), targetType);
 	}
 
-	private Object convertValue(Object sourceValue, TypeDescriptor sourceType, TypeDescriptor targetType) {
+	@Nullable
+	private Object convertValue(Object sourceValue, TypeDescriptor sourceType, @Nullable TypeDescriptor targetType) {
 		if (targetType == null) {
 			return sourceValue;
 		}
@@ -130,11 +133,13 @@ final class MapToMapConverter implements ConditionalGenericConverter {
 
 	private static class MapEntry {
 
+		@Nullable
 		private final Object key;
 
+		@Nullable
 		private final Object value;
 
-		public MapEntry(Object key, Object value) {
+		public MapEntry(@Nullable Object key, @Nullable Object value) {
 			this.key = key;
 			this.value = value;
 		}

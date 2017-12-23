@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.springframework.core.env;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.springframework.lang.NonNullApi;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
@@ -57,7 +56,6 @@ import org.springframework.util.ObjectUtils;
  * @see MutablePropertySources
  * @see org.springframework.context.annotation.PropertySource
  */
-@NonNullApi
 public abstract class PropertySource<T> {
 
 	protected final Log logger = LogFactory.getLog(getClass());
@@ -159,11 +157,11 @@ public abstract class PropertySource<T> {
 	@Override
 	public String toString() {
 		if (logger.isDebugEnabled()) {
-			return String.format("%s@%s [name='%s', properties=%s]",
-					getClass().getSimpleName(), System.identityHashCode(this), this.name, this.source);
+			return getClass().getSimpleName() + "@" + System.identityHashCode(this) +
+					" {name='" + this.name + "', properties=" + this.source + "}";
 		}
 		else {
-			return String.format("%s [name='%s']", getClass().getSimpleName(), this.name);
+			return getClass().getSimpleName() + " {name='" + this.name + "'}";
 		}
 	}
 
@@ -212,6 +210,7 @@ public abstract class PropertySource<T> {
 		 * Always returns {@code null}.
 		 */
 		@Override
+		@Nullable
 		public String getProperty(String name) {
 			return null;
 		}
@@ -241,13 +240,9 @@ public abstract class PropertySource<T> {
 		}
 
 		@Override
+		@Nullable
 		public String getProperty(String name) {
 			throw new UnsupportedOperationException(USAGE_ERROR);
-		}
-
-		@Override
-		public String toString() {
-			return String.format("%s [name='%s']", getClass().getSimpleName(), this.name);
 		}
 	}
 

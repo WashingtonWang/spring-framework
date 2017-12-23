@@ -18,7 +18,7 @@ package org.springframework.core.env;
 
 import java.util.List;
 
-import org.springframework.lang.NonNullApi;
+import org.springframework.lang.Nullable;
 
 /**
  * {@link CommandLinePropertySource} implementation backed by a simple String array.
@@ -77,7 +77,6 @@ import org.springframework.lang.NonNullApi;
  * @see CommandLinePropertySource
  * @see JOptCommandLinePropertySource
  */
-@NonNullApi
 public class SimpleCommandLinePropertySource extends CommandLinePropertySource<CommandLineArgs> {
 
 	/**
@@ -112,6 +111,7 @@ public class SimpleCommandLinePropertySource extends CommandLinePropertySource<C
 	}
 
 	@Override
+	@Nullable
 	protected List<String> getOptionValues(String name) {
 		return this.source.getOptionValues(name);
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,9 +52,10 @@ public abstract class AbstractMessageSendingTemplate<D> implements MessageSendin
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	private volatile D defaultDestination;
+	@Nullable
+	private D defaultDestination;
 
-	private volatile MessageConverter converter = new SimpleMessageConverter();
+	private MessageConverter converter = new SimpleMessageConverter();
 
 
 	/**
@@ -62,13 +63,14 @@ public abstract class AbstractMessageSendingTemplate<D> implements MessageSendin
 	 * a destination argument. If a default destination is not configured, send methods
 	 * without a destination argument will raise an exception if invoked.
 	 */
-	public void setDefaultDestination(D defaultDestination) {
+	public void setDefaultDestination(@Nullable D defaultDestination) {
 		this.defaultDestination = defaultDestination;
 	}
 
 	/**
 	 * Return the configured default destination.
 	 */
+	@Nullable
 	public D getDefaultDestination() {
 		return this.defaultDestination;
 	}
@@ -79,7 +81,7 @@ public abstract class AbstractMessageSendingTemplate<D> implements MessageSendin
 	 * @param messageConverter the message converter to use
 	 */
 	public void setMessageConverter(MessageConverter messageConverter) {
-		Assert.notNull(messageConverter, "'messageConverter' must not be null");
+		Assert.notNull(messageConverter, "MessageConverter must not be null");
 		this.converter = messageConverter;
 	}
 
@@ -120,17 +122,21 @@ public abstract class AbstractMessageSendingTemplate<D> implements MessageSendin
 	}
 
 	@Override
-	public void convertAndSend(D destination, Object payload, Map<String, Object> headers) throws MessagingException {
+	public void convertAndSend(D destination, Object payload, @Nullable Map<String, Object> headers)
+			throws MessagingException {
+
 		convertAndSend(destination, payload, headers, null);
 	}
 
 	@Override
-	public void convertAndSend(Object payload, @Nullable MessagePostProcessor postProcessor) throws MessagingException {
+	public void convertAndSend(Object payload, @Nullable MessagePostProcessor postProcessor)
+			throws MessagingException {
+
 		convertAndSend(getRequiredDefaultDestination(), payload, postProcessor);
 	}
 
 	@Override
-	public void convertAndSend(D destination, Object payload, MessagePostProcessor postProcessor)
+	public void convertAndSend(D destination, Object payload, @Nullable MessagePostProcessor postProcessor)
 			throws MessagingException {
 
 		convertAndSend(destination, payload, null, postProcessor);
@@ -153,7 +159,9 @@ public abstract class AbstractMessageSendingTemplate<D> implements MessageSendin
 	 * @param postProcessor the post processor to apply to the message
 	 * @return the converted message
 	 */
-	protected Message<?> doConvert(Object payload, Map<String, Object> headers, MessagePostProcessor postProcessor) {
+	protected Message<?> doConvert(Object payload, @Nullable Map<String, Object> headers,
+			@Nullable MessagePostProcessor postProcessor) {
+
 		MessageHeaders messageHeaders = null;
 		Object conversionHint = (headers != null ? headers.get(CONVERSION_HINT_HEADER) : null);
 
@@ -172,7 +180,7 @@ public abstract class AbstractMessageSendingTemplate<D> implements MessageSendin
 				((SmartMessageConverter) converter).toMessage(payload, messageHeaders, conversionHint) :
 				converter.toMessage(payload, messageHeaders));
 		if (message == null) {
-			String payloadType = (payload != null ? payload.getClass().getName() : null);
+			String payloadType = payload.getClass().getName();
 			Object contentType = (messageHeaders != null ? messageHeaders.get(MessageHeaders.CONTENT_TYPE) : null);
 			throw new MessageConversionException("Unable to convert payload with type='" + payloadType +
 					"', contentType='" + contentType + "', converter=[" + getMessageConverter() + "]");

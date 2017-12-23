@@ -169,7 +169,7 @@ public class HibernateJpaDialect extends DefaultJpaDialect {
 	}
 
 	@Override
-	public Object prepareTransaction(EntityManager entityManager, boolean readOnly, String name)
+	public Object prepareTransaction(EntityManager entityManager, boolean readOnly, @Nullable String name)
 			throws PersistenceException {
 
 		Session session = getSession(entityManager);
@@ -181,6 +181,7 @@ public class HibernateJpaDialect extends DefaultJpaDialect {
 	@Nullable
 	protected FlushMode prepareFlushMode(Session session, boolean readOnly) throws PersistenceException {
 		FlushMode flushMode = (FlushMode) ReflectionUtils.invokeMethod(getFlushMode, session);
+		Assert.state(flushMode != null, "No FlushMode from Session");
 		if (readOnly) {
 			// We should suppress flushing for a read-only transaction.
 			if (!flushMode.equals(FlushMode.MANUAL)) {
@@ -201,7 +202,9 @@ public class HibernateJpaDialect extends DefaultJpaDialect {
 
 	@Override
 	public void cleanupTransaction(@Nullable Object transactionData) {
-		((SessionTransactionData) transactionData).resetSessionState();
+		if (transactionData instanceof SessionTransactionData) {
+			((SessionTransactionData) transactionData).resetSessionState();
+		}
 	}
 
 	@Override
@@ -213,6 +216,7 @@ public class HibernateJpaDialect extends DefaultJpaDialect {
 	}
 
 	@Override
+	@Nullable
 	public DataAccessException translateExceptionIfPossible(RuntimeException ex) {
 		if (ex instanceof HibernateException) {
 			return convertHibernateAccessException((HibernateException) ex);
@@ -319,14 +323,18 @@ public class HibernateJpaDialect extends DefaultJpaDialect {
 
 		private final Session session;
 
+		@Nullable
 		private final FlushMode previousFlushMode;
 
+		@Nullable
 		private final Connection preparedCon;
 
+		@Nullable
 		private final Integer previousIsolationLevel;
 
-		public SessionTransactionData(
-				Session session, FlushMode previousFlushMode, @Nullable Connection preparedCon, @Nullable Integer previousIsolationLevel) {
+		public SessionTransactionData(Session session, @Nullable FlushMode previousFlushMode,
+				@Nullable Connection preparedCon, @Nullable Integer previousIsolationLevel) {
+
 			this.session = session;
 			this.previousFlushMode = previousFlushMode;
 			this.preparedCon = preparedCon;
@@ -354,6 +362,7 @@ public class HibernateJpaDialect extends DefaultJpaDialect {
 
 	private static class HibernateConnectionHandle implements ConnectionHandle {
 
+		@Nullable
 		private static volatile Method connectionMethodToUse;
 
 		private final Session session;
@@ -373,11 +382,15 @@ public class HibernateJpaDialect extends DefaultJpaDialect {
 
 		public static Connection doGetConnection(Session session) {
 			try {
-				if (connectionMethodToUse == null) {
+				Method methodToUse = connectionMethodToUse;
+				if (methodToUse == null) {
 					// Reflective lookup to find SessionImpl's connection() method on Hibernate 4.x/5.x
-					connectionMethodToUse = session.getClass().getMethod("connection");
+					methodToUse = session.getClass().getMethod("connection");
+					connectionMethodToUse = methodToUse;
 				}
-				return (Connection) ReflectionUtils.invokeMethod(connectionMethodToUse, session);
+				Connection con = (Connection) ReflectionUtils.invokeMethod(methodToUse, session);
+				Assert.state(con != null, "No Connection from Session");
+				return con;
 			}
 			catch (NoSuchMethodException ex) {
 				throw new IllegalStateException("Cannot find connection() method on Hibernate Session", ex);

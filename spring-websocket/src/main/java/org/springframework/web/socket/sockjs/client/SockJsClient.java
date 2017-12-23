@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,12 +79,15 @@ public class SockJsClient implements WebSocketClient, Lifecycle {
 
 	private final List<Transport> transports;
 
+	@Nullable
 	private String[] httpHeaderNames;
 
 	private InfoReceiver infoReceiver;
 
+	@Nullable
 	private SockJsMessageCodec messageCodec;
 
+	@Nullable
 	private TaskScheduler connectTimeoutScheduler;
 
 	private volatile boolean running = false;
@@ -131,7 +134,7 @@ public class SockJsClient implements WebSocketClient, Lifecycle {
 	 *
 	 * @param httpHeaderNames HTTP header names
 	 */
-	public void setHttpHeaderNames(String... httpHeaderNames) {
+	public void setHttpHeaderNames(@Nullable String... httpHeaderNames) {
 		this.httpHeaderNames = httpHeaderNames;
 	}
 
@@ -139,6 +142,7 @@ public class SockJsClient implements WebSocketClient, Lifecycle {
 	 * The configured HTTP header names to be copied from the handshake
 	 * headers and also included in other HTTP requests.
 	 */
+	@Nullable
 	public String[] getHttpHeaderNames() {
 		return this.httpHeaderNames;
 	}
@@ -170,7 +174,7 @@ public class SockJsClient implements WebSocketClient, Lifecycle {
 	 * Jackson2SockJsMessageCodec} is used if Jackson is on the classpath.
 	 */
 	public void setMessageCodec(SockJsMessageCodec messageCodec) {
-		Assert.notNull(messageCodec, "'messageCodec' is required");
+		Assert.notNull(messageCodec, "SockJsMessageCodec is required");
 		this.messageCodec = messageCodec;
 	}
 
@@ -178,6 +182,7 @@ public class SockJsClient implements WebSocketClient, Lifecycle {
 	 * Return the SockJsMessageCodec to use.
 	 */
 	public SockJsMessageCodec getMessageCodec() {
+		Assert.state(this.messageCodec != null, "No SockJsMessageCodec set");
 		return this.messageCodec;
 	}
 
@@ -264,22 +269,24 @@ public class SockJsClient implements WebSocketClient, Lifecycle {
 		return connectFuture;
 	}
 
-	private HttpHeaders getHttpRequestHeaders(HttpHeaders webSocketHttpHeaders) {
-		if (getHttpHeaderNames() == null) {
+	@Nullable
+	private HttpHeaders getHttpRequestHeaders(@Nullable HttpHeaders webSocketHttpHeaders) {
+		if (getHttpHeaderNames() == null || webSocketHttpHeaders == null) {
 			return webSocketHttpHeaders;
 		}
 		else {
 			HttpHeaders httpHeaders = new HttpHeaders();
 			for (String name : getHttpHeaderNames()) {
-				if (webSocketHttpHeaders.containsKey(name)) {
-					httpHeaders.put(name, webSocketHttpHeaders.get(name));
+				List<String> values = webSocketHttpHeaders.get(name);
+				if (values != null) {
+					httpHeaders.put(name, values);
 				}
 			}
 			return httpHeaders;
 		}
 	}
 
-	private ServerInfo getServerInfo(SockJsUrlInfo sockJsUrlInfo, HttpHeaders headers) {
+	private ServerInfo getServerInfo(SockJsUrlInfo sockJsUrlInfo, @Nullable HttpHeaders headers) {
 		URI infoUrl = sockJsUrlInfo.getInfoUrl();
 		ServerInfo info = this.serverInfoCache.get(infoUrl);
 		if (info == null) {
@@ -292,7 +299,9 @@ public class SockJsClient implements WebSocketClient, Lifecycle {
 		return info;
 	}
 
-	private DefaultTransportRequest createRequest(SockJsUrlInfo urlInfo, HttpHeaders headers, ServerInfo serverInfo) {
+	private DefaultTransportRequest createRequest(
+			SockJsUrlInfo urlInfo, @Nullable HttpHeaders headers, ServerInfo serverInfo) {
+
 		List<DefaultTransportRequest> requests = new ArrayList<>(this.transports.size());
 		for (Transport transport : this.transports) {
 			for (TransportType type : transport.getTransportTypes()) {
@@ -308,7 +317,10 @@ public class SockJsClient implements WebSocketClient, Lifecycle {
 		}
 		for (int i = 0; i < requests.size() - 1; i++) {
 			DefaultTransportRequest request = requests.get(i);
-			request.setUser(getUser());
+			Principal user = getUser();
+			if (user != null) {
+				request.setUser(user);
+			}
 			if (this.connectTimeoutScheduler != null) {
 				request.setTimeoutValue(serverInfo.getRetransmissionTimeout());
 				request.setTimeoutScheduler(this.connectTimeoutScheduler);

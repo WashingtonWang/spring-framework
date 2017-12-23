@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -172,6 +172,7 @@ public abstract class AbstractReflectiveMBeanInfoAssembler extends AbstractMBean
 	/**
 	 * Default value for the JMX field "currencyTimeLimit".
 	 */
+	@Nullable
 	private Integer defaultCurrencyTimeLimit;
 
 	/**
@@ -181,6 +182,7 @@ public abstract class AbstractReflectiveMBeanInfoAssembler extends AbstractMBean
 
 	private boolean exposeClassDescriptor = false;
 
+	@Nullable
 	private ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 
@@ -204,7 +206,7 @@ public abstract class AbstractReflectiveMBeanInfoAssembler extends AbstractMBean
 	 * @see org.springframework.jmx.export.metadata.AbstractJmxAttribute#setCurrencyTimeLimit
 	 * @see #applyCurrencyTimeLimit(javax.management.Descriptor, int)
 	 */
-	public void setDefaultCurrencyTimeLimit(Integer defaultCurrencyTimeLimit) {
+	public void setDefaultCurrencyTimeLimit(@Nullable Integer defaultCurrencyTimeLimit) {
 		this.defaultCurrencyTimeLimit = defaultCurrencyTimeLimit;
 	}
 
@@ -266,7 +268,7 @@ public abstract class AbstractReflectiveMBeanInfoAssembler extends AbstractMBean
 	 * names if needed (e.g. for parameter names of MBean operation methods).
 	 * <p>Default is a {@link DefaultParameterNameDiscoverer}.
 	 */
-	public void setParameterNameDiscoverer(ParameterNameDiscoverer parameterNameDiscoverer) {
+	public void setParameterNameDiscoverer(@Nullable ParameterNameDiscoverer parameterNameDiscoverer) {
 		this.parameterNameDiscoverer = parameterNameDiscoverer;
 	}
 
@@ -553,7 +555,9 @@ public abstract class AbstractReflectiveMBeanInfoAssembler extends AbstractMBean
 	 * @see #setDefaultCurrencyTimeLimit(Integer)
 	 * @see #applyDefaultCurrencyTimeLimit(javax.management.Descriptor)
 	 */
-	protected void populateAttributeDescriptor(Descriptor desc, Method getter, Method setter, String beanKey) {
+	protected void populateAttributeDescriptor(
+			Descriptor desc, @Nullable Method getter, @Nullable Method setter, String beanKey) {
+
 		applyDefaultCurrencyTimeLimit(desc);
 	}
 

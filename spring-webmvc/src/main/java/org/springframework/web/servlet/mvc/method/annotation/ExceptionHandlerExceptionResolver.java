@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -76,12 +75,16 @@ import org.springframework.web.servlet.support.RequestContextUtils;
 public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExceptionResolver
 		implements ApplicationContextAware, InitializingBean {
 
+	@Nullable
 	private List<HandlerMethodArgumentResolver> customArgumentResolvers;
 
+	@Nullable
 	private HandlerMethodArgumentResolverComposite argumentResolvers;
 
+	@Nullable
 	private List<HandlerMethodReturnValueHandler> customReturnValueHandlers;
 
+	@Nullable
 	private HandlerMethodReturnValueHandlerComposite returnValueHandlers;
 
 	private List<HttpMessageConverter<?>> messageConverters;
@@ -90,6 +93,7 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 
 	private final List<Object> responseBodyAdvice = new ArrayList<>();
 
+	@Nullable
 	private ApplicationContext applicationContext;
 
 	private final Map<Class<?>, ExceptionHandlerMethodResolver> exceptionHandlerCache =
@@ -116,7 +120,7 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 	 * after built-in ones. To override the built-in support for argument
 	 * resolution use {@link #setArgumentResolvers} instead.
 	 */
-	public void setCustomArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
+	public void setCustomArgumentResolvers(@Nullable List<HandlerMethodArgumentResolver> argumentResolvers) {
 		this.customArgumentResolvers= argumentResolvers;
 	}
 
@@ -132,7 +136,7 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 	 * Configure the complete list of supported argument types thus overriding
 	 * the resolvers that would otherwise be configured by default.
 	 */
-	public void setArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
+	public void setArgumentResolvers(@Nullable List<HandlerMethodArgumentResolver> argumentResolvers) {
 		if (argumentResolvers == null) {
 			this.argumentResolvers = null;
 		}
@@ -156,7 +160,7 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 	 * ordered after built-in ones. To override the built-in support for
 	 * return value handling use {@link #setReturnValueHandlers}.
 	 */
-	public void setCustomReturnValueHandlers(List<HandlerMethodReturnValueHandler> returnValueHandlers) {
+	public void setCustomReturnValueHandlers(@Nullable List<HandlerMethodReturnValueHandler> returnValueHandlers) {
 		this.customReturnValueHandlers = returnValueHandlers;
 	}
 
@@ -172,7 +176,7 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 	 * Configure the complete list of supported return value types thus
 	 * overriding handlers that would otherwise be configured by default.
 	 */
-	public void setReturnValueHandlers(List<HandlerMethodReturnValueHandler> returnValueHandlers) {
+	public void setReturnValueHandlers(@Nullable List<HandlerMethodReturnValueHandler> returnValueHandlers) {
 		if (returnValueHandlers == null) {
 			this.returnValueHandlers = null;
 		}
@@ -227,7 +231,7 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 	 * but before the body is written to the response with the selected
 	 * {@code HttpMessageConverter}.
 	 */
-	public void setResponseBodyAdvice(List<ResponseBodyAdvice<?>> responseBodyAdvice) {
+	public void setResponseBodyAdvice(@Nullable List<ResponseBodyAdvice<?>> responseBodyAdvice) {
 		this.responseBodyAdvice.clear();
 		if (responseBodyAdvice != null) {
 			this.responseBodyAdvice.addAll(responseBodyAdvice);
@@ -235,10 +239,11 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 	}
 
 	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) {
+	public void setApplicationContext(@Nullable ApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;
 	}
 
+	@Nullable
 	public ApplicationContext getApplicationContext() {
 		return this.applicationContext;
 	}
@@ -271,14 +276,18 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 		AnnotationAwareOrderComparator.sort(adviceBeans);
 
 		for (ControllerAdviceBean adviceBean : adviceBeans) {
-			ExceptionHandlerMethodResolver resolver = new ExceptionHandlerMethodResolver(adviceBean.getBeanType());
+			Class<?> beanType = adviceBean.getBeanType();
+			if (beanType == null) {
+				throw new IllegalStateException("Unresolvable type for ControllerAdviceBean: " + adviceBean);
+			}
+			ExceptionHandlerMethodResolver resolver = new ExceptionHandlerMethodResolver(beanType);
 			if (resolver.hasExceptionMappings()) {
 				this.exceptionHandlerAdviceCache.put(adviceBean, resolver);
 				if (logger.isInfoEnabled()) {
 					logger.info("Detected @ExceptionHandler methods in " + adviceBean);
 				}
 			}
-			if (ResponseBodyAdvice.class.isAssignableFrom(adviceBean.getBeanType())) {
+			if (ResponseBodyAdvice.class.isAssignableFrom(beanType)) {
 				this.responseBodyAdvice.add(adviceBean);
 				if (logger.isInfoEnabled()) {
 					logger.info("Detected ResponseBodyAdvice implementation in " + adviceBean);
@@ -370,8 +379,12 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 			return null;
 		}
 
-		exceptionHandlerMethod.setHandlerMethodArgumentResolvers(this.argumentResolvers);
-		exceptionHandlerMethod.setHandlerMethodReturnValueHandlers(this.returnValueHandlers);
+		if (this.argumentResolvers != null) {
+			exceptionHandlerMethod.setHandlerMethodArgumentResolvers(this.argumentResolvers);
+		}
+		if (this.returnValueHandlers != null) {
+			exceptionHandlerMethod.setHandlerMethodReturnValueHandlers(this.returnValueHandlers);
+		}
 
 		ServletWebRequest webRequest = new ServletWebRequest(request, response);
 		ModelAndViewContainer mavContainer = new ModelAndViewContainer();
@@ -413,7 +426,6 @@ public class ExceptionHandlerExceptionResolver extends AbstractHandlerMethodExce
 			}
 			if (model instanceof RedirectAttributes) {
 				Map<String, ?> flashAttributes = ((RedirectAttributes) model).getFlashAttributes();
-				request = webRequest.getNativeRequest(HttpServletRequest.class);
 				RequestContextUtils.getOutputFlashMap(request).putAll(flashAttributes);
 			}
 			return mav;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,14 +44,19 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 
 	private boolean directFieldAccess = false;
 
+	@Nullable
 	private MessageCodesResolver messageCodesResolver;
 
+	@Nullable
 	private BindingErrorProcessor bindingErrorProcessor;
 
+	@Nullable
 	private Validator validator;
 
+	@Nullable
 	private ConversionService conversionService;
 
+	@Nullable
 	private PropertyEditorRegistrar[] propertyEditorRegistrars;
 
 
@@ -101,7 +106,7 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	 * the data binder.
 	 * @see org.springframework.validation.DataBinder#setMessageCodesResolver
 	 */
-	public final void setMessageCodesResolver(MessageCodesResolver messageCodesResolver) {
+	public final void setMessageCodesResolver(@Nullable MessageCodesResolver messageCodesResolver) {
 		this.messageCodesResolver = messageCodesResolver;
 	}
 
@@ -120,7 +125,7 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	 * of the data binder.
 	 * @see org.springframework.validation.DataBinder#setBindingErrorProcessor
 	 */
-	public final void setBindingErrorProcessor(BindingErrorProcessor bindingErrorProcessor) {
+	public final void setBindingErrorProcessor(@Nullable BindingErrorProcessor bindingErrorProcessor) {
 		this.bindingErrorProcessor = bindingErrorProcessor;
 	}
 
@@ -135,7 +140,7 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	/**
 	 * Set the Validator to apply after each binding step.
 	 */
-	public final void setValidator(Validator validator) {
+	public final void setValidator(@Nullable Validator validator) {
 		this.validator = validator;
 	}
 
@@ -151,7 +156,7 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	 * Specify a ConversionService which will apply to every DataBinder.
 	 * @since 3.0
 	 */
-	public final void setConversionService(ConversionService conversionService) {
+	public final void setConversionService(@Nullable ConversionService conversionService) {
 		this.conversionService = conversionService;
 	}
 
@@ -173,7 +178,7 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	/**
 	 * Specify multiple PropertyEditorRegistrars to be applied to every DataBinder.
 	 */
-	public final void setPropertyEditorRegistrars(PropertyEditorRegistrar[] propertyEditorRegistrars) {
+	public final void setPropertyEditorRegistrars(@Nullable PropertyEditorRegistrar[] propertyEditorRegistrars) {
 		this.propertyEditorRegistrars = propertyEditorRegistrars;
 	}
 

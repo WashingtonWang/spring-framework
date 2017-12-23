@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package org.springframework.messaging.support;
 
-import java.util.UUID;
-
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.IdGenerator;
@@ -31,6 +29,10 @@ import org.springframework.util.IdGenerator;
  */
 public class IdTimestampMessageHeaderInitializer implements MessageHeaderInitializer {
 
+	private static final IdGenerator ID_VALUE_NONE_GENERATOR = () -> MessageHeaders.ID_VALUE_NONE;
+
+
+	@Nullable
 	private IdGenerator idGenerator;
 
 	private boolean enableTimestamp;
@@ -41,18 +43,10 @@ public class IdTimestampMessageHeaderInitializer implements MessageHeaderInitial
 	 * instances with.
 	 * <p>By default this property is set to {@code null} in which case the default
 	 * IdGenerator of {@link org.springframework.messaging.MessageHeaders} is used.
-	 * <p>To have no id's generated at all, see {@link #setDisableIdGeneration()}.
+	 * <p>To have no ids generated at all, see {@link #setDisableIdGeneration()}.
 	 */
-	public void setIdGenerator(IdGenerator idGenerator) {
+	public void setIdGenerator(@Nullable IdGenerator idGenerator) {
 		this.idGenerator = idGenerator;
-	}
-
-	/**
-	 * A shortcut for calling {@link #setIdGenerator(org.springframework.util.IdGenerator)}
-	 * with an id generation strategy to disable id generation completely.
-	 */
-	public void setDisableIdGeneration() {
-		this.idGenerator = ID_VALUE_NONE_GENERATOR;
 	}
 
 	/**
@@ -61,6 +55,14 @@ public class IdTimestampMessageHeaderInitializer implements MessageHeaderInitial
 	@Nullable
 	public IdGenerator getIdGenerator() {
 		return this.idGenerator;
+	}
+
+	/**
+	 * A shortcut for calling {@link #setIdGenerator} with an id generation strategy
+	 * to disable id generation completely.
+	 */
+	public void setDisableIdGeneration() {
+		this.idGenerator = ID_VALUE_NONE_GENERATOR;
 	}
 
 	/**
@@ -83,16 +85,11 @@ public class IdTimestampMessageHeaderInitializer implements MessageHeaderInitial
 
 	@Override
 	public void initHeaders(MessageHeaderAccessor headerAccessor) {
-		headerAccessor.setIdGenerator(getIdGenerator());
+		IdGenerator idGenerator = getIdGenerator();
+		if (idGenerator != null) {
+			headerAccessor.setIdGenerator(idGenerator);
+		}
 		headerAccessor.setEnableTimestamp(isEnableTimestamp());
 	}
-
-
-	private static final IdGenerator ID_VALUE_NONE_GENERATOR = new IdGenerator() {
-		@Override
-		public UUID generateId() {
-			return MessageHeaders.ID_VALUE_NONE;
-		}
-	};
 
 }

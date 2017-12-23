@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -356,7 +356,7 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 	 * @see DependencyDescriptor
 	 */
 	@Nullable
-	Object resolveDependency(DependencyDescriptor descriptor, String requestingBeanName,
+	Object resolveDependency(DependencyDescriptor descriptor, @Nullable String requestingBeanName,
 			@Nullable Set<String> autowiredBeanNames, @Nullable TypeConverter typeConverter) throws BeansException;
 
 }

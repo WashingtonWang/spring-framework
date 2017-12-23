@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ import org.springframework.util.Assert;
 @SuppressWarnings("serial")
 public abstract class AbstractPropertyBindingResult extends AbstractBindingResult {
 
+	@Nullable
 	private transient ConversionService conversionService;
 
 
@@ -87,6 +88,7 @@ public abstract class AbstractPropertyBindingResult extends AbstractBindingResul
 	 * @see #getPropertyAccessor()
 	 */
 	@Override
+	@Nullable
 	public Class<?> getFieldType(@Nullable String field) {
 		return getPropertyAccessor().getPropertyType(fixedField(field));
 	}
@@ -96,6 +98,7 @@ public abstract class AbstractPropertyBindingResult extends AbstractBindingResul
 	 * @see #getPropertyAccessor()
 	 */
 	@Override
+	@Nullable
 	protected Object getActualFieldValue(String field) {
 		return getPropertyAccessor().getPropertyValue(field);
 	}
@@ -105,7 +108,7 @@ public abstract class AbstractPropertyBindingResult extends AbstractBindingResul
 	 * @see #getCustomEditor
 	 */
 	@Override
-	protected Object formatFieldValue(String field, Object value) {
+	protected Object formatFieldValue(String field, @Nullable Object value) {
 		String fixedField = fixedField(field);
 		// Try custom editor...
 		PropertyEditor customEditor = getCustomEditor(fixedField);
@@ -149,6 +152,7 @@ public abstract class AbstractPropertyBindingResult extends AbstractBindingResul
 	 * if applicable.
 	 */
 	@Override
+	@Nullable
 	public PropertyEditor findEditor(@Nullable String field, @Nullable Class<?> valueType) {
 		Class<?> valueTypeForLookup = valueType;
 		if (valueTypeForLookup == null) {
@@ -159,7 +163,7 @@ public abstract class AbstractPropertyBindingResult extends AbstractBindingResul
 			TypeDescriptor td = null;
 			if (field != null) {
 				TypeDescriptor ptd = getPropertyAccessor().getPropertyTypeDescriptor(fixedField(field));
-				if (valueType == null || valueType.isAssignableFrom(ptd.getType())) {
+				if (ptd != null && (valueType == null || valueType.isAssignableFrom(ptd.getType()))) {
 					td = ptd;
 				}
 			}

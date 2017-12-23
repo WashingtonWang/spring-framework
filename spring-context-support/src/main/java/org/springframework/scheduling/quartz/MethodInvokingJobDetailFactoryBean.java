@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,20 +77,26 @@ import org.springframework.util.MethodInvoker;
 public class MethodInvokingJobDetailFactoryBean extends ArgumentConvertingMethodInvoker
 		implements FactoryBean<JobDetail>, BeanNameAware, BeanClassLoaderAware, BeanFactoryAware, InitializingBean {
 
+	@Nullable
 	private String name;
 
 	private String group = Scheduler.DEFAULT_GROUP;
 
 	private boolean concurrent = true;
 
+	@Nullable
 	private String targetBeanName;
 
+	@Nullable
 	private String beanName;
 
+	@Nullable
 	private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
 
+	@Nullable
 	private BeanFactory beanFactory;
 
+	@Nullable
 	private JobDetail jobDetail;
 
 
@@ -142,7 +148,7 @@ public class MethodInvokingJobDetailFactoryBean extends ArgumentConvertingMethod
 	}
 
 	@Override
-	public void setBeanClassLoader(@Nullable ClassLoader classLoader) {
+	public void setBeanClassLoader(ClassLoader classLoader) {
 		this.beanClassLoader = classLoader;
 	}
 
@@ -170,7 +176,7 @@ public class MethodInvokingJobDetailFactoryBean extends ArgumentConvertingMethod
 
 		// Build JobDetail instance.
 		JobDetailImpl jdi = new JobDetailImpl();
-		jdi.setName(name);
+		jdi.setName(name != null ? name : toString());
 		jdi.setGroup(this.group);
 		jdi.setJobClass((Class) jobClass);
 		jdi.setDurability(true);
@@ -217,6 +223,7 @@ public class MethodInvokingJobDetailFactoryBean extends ArgumentConvertingMethod
 
 
 	@Override
+	@Nullable
 	public JobDetail getObject() {
 		return this.jobDetail;
 	}
@@ -240,6 +247,7 @@ public class MethodInvokingJobDetailFactoryBean extends ArgumentConvertingMethod
 
 		protected static final Log logger = LogFactory.getLog(MethodInvokingJob.class);
 
+		@Nullable
 		private MethodInvoker methodInvoker;
 
 		/**
@@ -254,6 +262,7 @@ public class MethodInvokingJobDetailFactoryBean extends ArgumentConvertingMethod
 		 */
 		@Override
 		protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
+			Assert.state(this.methodInvoker != null, "No MethodInvoker set");
 			try {
 				context.setResult(this.methodInvoker.invoke());
 			}

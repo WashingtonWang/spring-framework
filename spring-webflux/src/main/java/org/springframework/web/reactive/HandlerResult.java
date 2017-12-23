@@ -36,12 +36,14 @@ public class HandlerResult {
 
 	private final Object handler;
 
+	@Nullable
 	private final Object returnValue;
 
 	private final ResolvableType returnType;
 
 	private final BindingContext bindingContext;
 
+	@Nullable
 	private Function<Throwable, Mono<HandlerResult>> exceptionHandler;
 
 
@@ -63,7 +65,7 @@ public class HandlerResult {
 	 * @param context the binding context used for request handling
 	 */
 	public HandlerResult(Object handler, @Nullable Object returnValue, MethodParameter returnType,
-			BindingContext context) {
+			@Nullable BindingContext context) {
 
 		Assert.notNull(handler, "'handler' is required");
 		Assert.notNull(returnType, "'returnType' is required");
@@ -90,15 +92,18 @@ public class HandlerResult {
 	}
 
 	/**
-	 * Return the type of the value returned from the handler.
+	 * Return the type of the value returned from the handler -- e.g. the return
+	 * type declared on a controller method's signature. Also see
+	 * {@link #getReturnTypeSource()} to obtain the underlying
+	 * {@link MethodParameter} for the return type.
 	 */
 	public ResolvableType getReturnType() {
 		return this.returnType;
 	}
 
 	/**
-	 * Return the {@link MethodParameter} from which
-	 * {@link #getReturnType() returnType} was created.
+	 * Return the {@link MethodParameter} from which {@link #getReturnType()
+	 * returnType} was created.
 	 */
 	public MethodParameter getReturnTypeSource() {
 		return (MethodParameter) this.returnType.getSource();
@@ -144,7 +149,7 @@ public class HandlerResult {
 	 * @return the new result or the same error if there is no exception handler
 	 */
 	public Mono<HandlerResult> applyExceptionHandler(Throwable failure) {
-		return (hasExceptionHandler() ? this.exceptionHandler.apply(failure) : Mono.error(failure));
+		return (this.exceptionHandler != null ? this.exceptionHandler.apply(failure) : Mono.error(failure));
 	}
 
 }

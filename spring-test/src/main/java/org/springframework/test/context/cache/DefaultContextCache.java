@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,6 +118,7 @@ public class DefaultContextCache implements ContextCache {
 	 * {@inheritDoc}
 	 */
 	@Override
+	@Nullable
 	public ApplicationContext get(MergedContextConfiguration key) {
 		Assert.notNull(key, "Key must not be null");
 		ApplicationContext context = this.contextMap.get(key);
@@ -160,12 +161,14 @@ public class DefaultContextCache implements ContextCache {
 	public void remove(MergedContextConfiguration key, @Nullable HierarchyMode hierarchyMode) {
 		Assert.notNull(key, "Key must not be null");
 
-		// startKey is the level at which to begin clearing the cache, depending
-		// on the configured hierarchy mode.
+		// startKey is the level at which to begin clearing the cache,
+		// depending on the configured hierarchy mode.s
 		MergedContextConfiguration startKey = key;
 		if (hierarchyMode == HierarchyMode.EXHAUSTIVE) {
-			while (startKey.getParent() != null) {
-				startKey = startKey.getParent();
+			MergedContextConfiguration parent = startKey.getParent();
+			while (parent != null) {
+				startKey = parent;
+				parent = startKey.getParent();
 			}
 		}
 

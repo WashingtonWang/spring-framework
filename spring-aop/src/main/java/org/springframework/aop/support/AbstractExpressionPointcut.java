@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,15 +33,17 @@ import org.springframework.lang.Nullable;
 @SuppressWarnings("serial")
 public abstract class AbstractExpressionPointcut implements ExpressionPointcut, Serializable {
 
+	@Nullable
 	private String location;
 
+	@Nullable
 	private String expression;
 
 
 	/**
 	 * Set the location for debugging.
 	 */
-	public void setLocation(String location) {
+	public void setLocation(@Nullable String location) {
 		this.location = location;
 	}
 
@@ -56,7 +58,7 @@ public abstract class AbstractExpressionPointcut implements ExpressionPointcut, 
 		return this.location;
 	}
 
-	public void setExpression(String expression) {
+	public void setExpression(@Nullable String expression) {
 		this.expression = expression;
 		try {
 			onSetExpression(expression);
@@ -80,13 +82,14 @@ public abstract class AbstractExpressionPointcut implements ExpressionPointcut, 
 	 * @throws IllegalArgumentException if the expression is invalid
 	 * @see #setExpression
 	 */
-	protected void onSetExpression(String expression) throws IllegalArgumentException {
+	protected void onSetExpression(@Nullable String expression) throws IllegalArgumentException {
 	}
 
 	/**
 	 * Return this pointcut's expression.
 	 */
 	@Override
+	@Nullable
 	public String getExpression() {
 		return this.expression;
 	}

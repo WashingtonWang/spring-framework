@@ -19,6 +19,9 @@ package org.springframework.web.util.pattern;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.springframework.http.server.PathContainer.PathSegment;
+import org.springframework.lang.Nullable;
+
 /**
  * A path element representing capturing a piece of the path as a variable. In the pattern
  * '/foo/{bar}/goo' the {bar} is represented as a {@link CaptureVariablePathElement}. There
@@ -31,6 +34,7 @@ class CaptureVariablePathElement extends PathElement {
 
 	private final String variableName;
 
+	@Nullable
 	private Pattern constraintPattern;
 
 
@@ -67,17 +71,19 @@ class CaptureVariablePathElement extends PathElement {
 
 
 	@Override
-	public boolean matches(int candidateIndex, PathPattern.MatchingContext matchingContext) {
-		int nextPos = matchingContext.scanAhead(candidateIndex);
-		// There must be at least one character to capture:
-		if (nextPos == candidateIndex) {
+	public boolean matches(int pathIndex, PathPattern.MatchingContext matchingContext) {
+		if (pathIndex >= matchingContext.pathLength) {
+			// no more path left to match this element
+			return false;
+		}
+		String candidateCapture = matchingContext.pathElementValue(pathIndex);
+		if (candidateCapture.length() == 0) {
 			return false;
 		}
 
-		CharSequence candidateCapture = null;
 		if (this.constraintPattern != null) {
-			// TODO possible optimization - only regex match if rest of pattern matches? Benefit likely to vary pattern to pattern
-			candidateCapture = new SubSequence(matchingContext.candidate, candidateIndex, nextPos);
+			// TODO possible optimization - only regex match if rest of pattern matches?
+			// Benefit likely to vary pattern to pattern
 			Matcher matcher = constraintPattern.matcher(candidateCapture);
 			if (matcher.groupCount() != 0) {
 				throw new IllegalArgumentException(
@@ -89,33 +95,31 @@ class CaptureVariablePathElement extends PathElement {
 		}
 
 		boolean match = false;
-		if (this.next == null) {
-			if (matchingContext.determineRemainingPath && nextPos > candidateIndex) {
-				matchingContext.remainingPathIndex = nextPos;
+		pathIndex++;
+		if (isNoMorePattern()) {
+			if (matchingContext.determineRemainingPath) {
+				matchingContext.remainingPathIndex = pathIndex;
 				match = true;
 			}
 			else {
 				// Needs to be at least one character #SPR15264
-				match = (nextPos == matchingContext.candidateLength && nextPos > candidateIndex);
-				if (!match && matchingContext.isAllowOptionalTrailingSlash()) {
-					match = (nextPos > candidateIndex) &&
-						    (nextPos + 1) == matchingContext.candidateLength && 
-						     matchingContext.candidate[nextPos] == separator;
+				match = (pathIndex == matchingContext.pathLength);
+				if (!match && matchingContext.isMatchOptionalTrailingSeparator()) {
+					match = //(nextPos > candidateIndex) &&
+						    (pathIndex + 1) == matchingContext.pathLength && 
+						    matchingContext.isSeparator(pathIndex);
 				}
 			}
 		}
 		else {
-			if (matchingContext.isMatchStartMatching && nextPos == matchingContext.candidateLength) {
-				match = true;  // no more data but matches up to this point
-			}
-			else {
-				match = this.next.matches(nextPos, matchingContext);
+			if (this.next != null) {
+				match = this.next.matches(pathIndex, matchingContext);
 			}
 		}
 
 		if (match && matchingContext.extractingVariables) {
-			matchingContext.set(this.variableName,
-					new String(matchingContext.candidate, candidateIndex, nextPos - candidateIndex));
+			matchingContext.set(this.variableName, candidateCapture,
+					((PathSegment)matchingContext.pathElements.get(pathIndex-1)).parameters());
 		}
 		return match;
 	}
@@ -148,6 +152,17 @@ class CaptureVariablePathElement extends PathElement {
 	public String toString() {
 		return "CaptureVariable({" + this.variableName +
 				(this.constraintPattern != null ? ":" + this.constraintPattern.pattern() : "") + "})";
+	}
+
+	public char[] getChars() {
+		StringBuilder b = new StringBuilder();
+		b.append("{");
+		b.append(this.variableName);
+		if (this.constraintPattern != null) {
+			b.append(":").append(this.constraintPattern.pattern());
+		}
+		b.append("}");
+		return b.toString().toCharArray();
 	}
 
 }

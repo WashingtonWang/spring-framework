@@ -50,9 +50,11 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	private boolean tableColumnMetaDataUsed = false;
 
 	/** the version of the database */
+	@Nullable
 	private String databaseVersion;
 
 	/** the name of the user currently connected */
+	@Nullable
 	private String userName;
 
 	/** indicates whether the identifiers are uppercased */
@@ -122,6 +124,7 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	}
 
 	@Override
+	@Nullable
 	public String getSimpleQueryForGetGeneratedKey(String tableName, String keyColumnName) {
 		return null;
 	}
@@ -209,19 +212,19 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 				logger.warn("Error retrieving 'DatabaseMetaData.storesLowerCaseIdentifiers': " + ex.getMessage());
 			}
 		}
-
 	}
 
 	@Override
 	public void initializeWithTableColumnMetaData(DatabaseMetaData databaseMetaData, @Nullable String catalogName,
-			@Nullable String schemaName, String tableName) throws SQLException {
+			@Nullable String schemaName, @Nullable String tableName) throws SQLException {
 
 		this.tableColumnMetaDataUsed = true;
 		locateTableAndProcessMetaData(databaseMetaData, catalogName, schemaName, tableName);
 	}
 
 	@Override
-	public String tableNameToUse(String tableName) {
+	@Nullable
+	public String tableNameToUse(@Nullable String tableName) {
 		if (tableName == null) {
 			return null;
 		}
@@ -237,7 +240,8 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	}
 
 	@Override
-	public String catalogNameToUse(String catalogName) {
+	@Nullable
+	public String catalogNameToUse(@Nullable String catalogName) {
 		if (catalogName == null) {
 			return null;
 		}
@@ -253,7 +257,8 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	}
 
 	@Override
-	public String schemaNameToUse(String schemaName) {
+	@Nullable
+	public String schemaNameToUse(@Nullable String schemaName) {
 		if (schemaName == null) {
 			return null;
 		}
@@ -269,12 +274,14 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	}
 
 	@Override
-	public String metaDataCatalogNameToUse(String catalogName) {
+	@Nullable
+	public String metaDataCatalogNameToUse(@Nullable String catalogName) {
 		return catalogNameToUse(catalogName);
 	}
 
 	@Override
-	public String metaDataSchemaNameToUse(String schemaName) {
+	@Nullable
+	public String metaDataSchemaNameToUse(@Nullable String schemaName) {
 		if (schemaName == null) {
 			return schemaNameToUse(getDefaultSchema());
 		}
@@ -284,6 +291,7 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	/**
 	 * Provide access to default schema for subclasses.
 	 */
+	@Nullable
 	protected String getDefaultSchema() {
 		return this.userName;
 	}
@@ -291,6 +299,7 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	/**
 	 * Provide access to version info for subclasses.
 	 */
+	@Nullable
 	protected String getDatabaseVersion() {
 		return this.databaseVersion;
 	}
@@ -298,8 +307,8 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	/**
 	 * Method supporting the metadata processing for a table.
 	 */
-	private void locateTableAndProcessMetaData(
-			DatabaseMetaData databaseMetaData, String catalogName, String schemaName, String tableName) {
+	private void locateTableAndProcessMetaData(DatabaseMetaData databaseMetaData,
+			@Nullable String catalogName, @Nullable String schemaName, @Nullable String tableName) {
 
 		Map<String, TableMetaData> tableMeta = new HashMap<>();
 		ResultSet tables = null;
@@ -338,7 +347,9 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 		}
 	}
 
-	private TableMetaData findTableMetaData(String schemaName, String tableName, Map<String, TableMetaData> tableMeta) {
+	private TableMetaData findTableMetaData(@Nullable String schemaName, @Nullable String tableName,
+			Map<String, TableMetaData> tableMeta) {
+
 		if (schemaName != null) {
 			TableMetaData tmd = tableMeta.get(schemaName.toUpperCase());
 			if (tmd == null) {
@@ -425,16 +436,20 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 	 */
 	private static class TableMetaData {
 
+		@Nullable
 		private String catalogName;
 
+		@Nullable
 		private String schemaName;
 
+		@Nullable
 		private String tableName;
 
 		public void setCatalogName(String catalogName) {
 			this.catalogName = catalogName;
 		}
 
+		@Nullable
 		public String getCatalogName() {
 			return this.catalogName;
 		}
@@ -443,6 +458,7 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 			this.schemaName = schemaName;
 		}
 
+		@Nullable
 		public String getSchemaName() {
 			return this.schemaName;
 		}
@@ -451,6 +467,7 @@ public class GenericTableMetaDataProvider implements TableMetaDataProvider {
 			this.tableName = tableName;
 		}
 
+		@Nullable
 		public String getTableName() {
 			return this.tableName;
 		}

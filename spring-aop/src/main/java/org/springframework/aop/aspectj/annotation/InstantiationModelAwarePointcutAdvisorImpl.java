@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,9 @@ import org.springframework.lang.Nullable;
 class InstantiationModelAwarePointcutAdvisorImpl
 		implements InstantiationModelAwarePointcutAdvisor, AspectJPrecedenceInformation, Serializable {
 
+	private static Advice EMPTY_ADVICE = new Advice() {};
+
+
 	private final AspectJExpressionPointcut declaredPointcut;
 
 	private final Class<?> declaringClass;
@@ -67,10 +70,13 @@ class InstantiationModelAwarePointcutAdvisorImpl
 
 	private final boolean lazy;
 
+	@Nullable
 	private Advice instantiatedAdvice;
 
+	@Nullable
 	private Boolean isBeforeAdvice;
 
+	@Nullable
 	private Boolean isAfterAdvice;
 
 
@@ -157,9 +163,10 @@ class InstantiationModelAwarePointcutAdvisorImpl
 	}
 
 
-	private Advice instantiateAdvice(AspectJExpressionPointcut pcut) {
-		return this.aspectJAdvisorFactory.getAdvice(this.aspectJAdviceMethod, pcut,
+	private Advice instantiateAdvice(AspectJExpressionPointcut pointcut) {
+		Advice advice = this.aspectJAdvisorFactory.getAdvice(this.aspectJAdviceMethod, pointcut,
 				this.aspectInstanceFactory, this.declarationOrder, this.aspectName);
+		return (advice != null ? advice : EMPTY_ADVICE);
 	}
 
 	public MetadataAwareAspectInstanceFactory getAspectInstanceFactory() {
@@ -263,10 +270,12 @@ class InstantiationModelAwarePointcutAdvisorImpl
 
 		private final Pointcut preInstantiationPointcut;
 
+		@Nullable
 		private LazySingletonAspectInstanceFactoryDecorator aspectInstanceFactory;
 
 		private PerTargetInstantiationModelPointcut(AspectJExpressionPointcut declaredPointcut,
 				Pointcut preInstantiationPointcut, MetadataAwareAspectInstanceFactory aspectInstanceFactory) {
+
 			this.declaredPointcut = declaredPointcut;
 			this.preInstantiationPointcut = preInstantiationPointcut;
 			if (aspectInstanceFactory instanceof LazySingletonAspectInstanceFactoryDecorator) {

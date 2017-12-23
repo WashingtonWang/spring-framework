@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.validation.constraints.Null;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -91,8 +89,6 @@ import org.springframework.util.StringUtils;
  * javadoc states details on the default resolution rules.
  *
  * <p>This generic data binder can be used in any kind of environment.
- * It is typically used by Spring web MVC controllers, via the web-specific
- * subclass {@link org.springframework.web.bind.ServletRequestDataBinder}.
  *
  * @author Rod Johnson
  * @author Juergen Hoeller
@@ -109,7 +105,6 @@ import org.springframework.util.StringUtils;
  * @see DefaultMessageCodesResolver
  * @see DefaultBindingErrorProcessor
  * @see org.springframework.context.MessageSource
- * @see org.springframework.web.bind.ServletRequestDataBinder
  */
 public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 
@@ -125,12 +120,15 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 */
 	protected static final Log logger = LogFactory.getLog(DataBinder.class);
 
+	@Nullable
 	private final Object target;
 
 	private final String objectName;
 
+	@Nullable
 	private AbstractPropertyBindingResult bindingResult;
 
+	@Nullable
 	private SimpleTypeConverter typeConverter;
 
 	private boolean ignoreUnknownFields = true;
@@ -141,14 +139,19 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 
 	private int autoGrowCollectionLimit = DEFAULT_AUTO_GROW_COLLECTION_LIMIT;
 
+	@Nullable
 	private String[] allowedFields;
 
+	@Nullable
 	private String[] disallowedFields;
 
+	@Nullable
 	private String[] requiredFields;
 
+	@Nullable
 	private ConversionService conversionService;
 
+	@Nullable
 	private MessageCodesResolver messageCodesResolver;
 
 	private BindingErrorProcessor bindingErrorProcessor = new DefaultBindingErrorProcessor();
@@ -181,6 +184,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	/**
 	 * Return the wrapped target object.
 	 */
+	@Nullable
 	public Object getTarget() {
 		return this.target;
 	}
@@ -419,9 +423,8 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * @param allowedFields array of field names
 	 * @see #setDisallowedFields
 	 * @see #isAllowed(String)
-	 * @see org.springframework.web.bind.ServletRequestDataBinder
 	 */
-	public void setAllowedFields(String... allowedFields) {
+	public void setAllowedFields(@Nullable String... allowedFields) {
 		this.allowedFields = PropertyAccessorUtils.canonicalPropertyNames(allowedFields);
 	}
 
@@ -429,6 +432,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * Return the fields that should be allowed for binding.
 	 * @return array of field names
 	 */
+	@Nullable
 	public String[] getAllowedFields() {
 		return this.allowedFields;
 	}
@@ -443,9 +447,8 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * @param disallowedFields array of field names
 	 * @see #setAllowedFields
 	 * @see #isAllowed(String)
-	 * @see org.springframework.web.bind.ServletRequestDataBinder
 	 */
-	public void setDisallowedFields(String... disallowedFields) {
+	public void setDisallowedFields(@Nullable String... disallowedFields) {
 		this.disallowedFields = PropertyAccessorUtils.canonicalPropertyNames(disallowedFields);
 	}
 
@@ -453,6 +456,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * Return the fields that should <i>not</i> be allowed for binding.
 	 * @return array of field names
 	 */
+	@Nullable
 	public String[] getDisallowedFields() {
 		return this.disallowedFields;
 	}
@@ -467,7 +471,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * @see #setBindingErrorProcessor
 	 * @see DefaultBindingErrorProcessor#MISSING_FIELD_ERROR_CODE
 	 */
-	public void setRequiredFields(String... requiredFields) {
+	public void setRequiredFields(@Nullable String... requiredFields) {
 		this.requiredFields = PropertyAccessorUtils.canonicalPropertyNames(requiredFields);
 		if (logger.isDebugEnabled()) {
 			logger.debug("DataBinder requires binding of required fields [" +
@@ -479,6 +483,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * Return the fields that are required for each binding process.
 	 * @return array of field names
 	 */
+	@Nullable
 	public String[] getRequiredFields() {
 		return this.requiredFields;
 	}
@@ -490,7 +495,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * @see BeanPropertyBindingResult#setMessageCodesResolver
 	 * @see DefaultMessageCodesResolver
 	 */
-	public void setMessageCodesResolver(MessageCodesResolver messageCodesResolver) {
+	public void setMessageCodesResolver(@Nullable MessageCodesResolver messageCodesResolver) {
 		Assert.state(this.messageCodesResolver == null, "DataBinder is already initialized with MessageCodesResolver");
 		this.messageCodesResolver = messageCodesResolver;
 		if (this.bindingResult != null && messageCodesResolver != null) {
@@ -521,14 +526,15 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * @see #addValidators(Validator...)
 	 * @see #replaceValidators(Validator...)
 	 */
-	public void setValidator(Validator validator) {
+	public void setValidator(@Nullable Validator validator) {
 		assertValidators(validator);
 		this.validators.clear();
-		this.validators.add(validator);
+		if (validator != null) {
+			this.validators.add(validator);
+		}
 	}
 
 	private void assertValidators(Validator... validators) {
-		Assert.notNull(validators, "Validators required");
 		for (Validator validator : validators) {
 			if (validator != null && (getTarget() != null && !validator.supports(getTarget().getClass()))) {
 				throw new IllegalStateException("Invalid target for Validator [" + validator + "]: " + getTarget());
@@ -581,7 +587,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	 * Specify a Spring 3.0 ConversionService to use for converting
 	 * property values, as an alternative to JavaBeans PropertyEditors.
 	 */
-	public void setConversionService(ConversionService conversionService) {
+	public void setConversionService(@Nullable ConversionService conversionService) {
 		Assert.state(this.conversionService == null, "DataBinder is already initialized with ConversionService");
 		this.conversionService = conversionService;
 		if (this.bindingResult != null && conversionService != null) {
@@ -666,24 +672,28 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	}
 
 	@Override
+	@Nullable
 	public PropertyEditor findCustomEditor(@Nullable Class<?> requiredType, @Nullable String propertyPath) {
 		return getPropertyEditorRegistry().findCustomEditor(requiredType, propertyPath);
 	}
 
 	@Override
-	public <T> T convertIfNecessary(Object value, @Nullable Class<T> requiredType) throws TypeMismatchException {
+	@Nullable
+	public <T> T convertIfNecessary(@Nullable Object value, @Nullable Class<T> requiredType) throws TypeMismatchException {
 		return getTypeConverter().convertIfNecessary(value, requiredType);
 	}
 
 	@Override
-	public <T> T convertIfNecessary(Object value, @Nullable Class<T> requiredType, @Nullable MethodParameter methodParam)
-			throws TypeMismatchException {
+	@Nullable
+	public <T> T convertIfNecessary(@Nullable Object value, @Nullable Class<T> requiredType,
+			@Nullable MethodParameter methodParam) throws TypeMismatchException {
 
 		return getTypeConverter().convertIfNecessary(value, requiredType, methodParam);
 	}
 
 	@Override
-	public <T> T convertIfNecessary(Object value, @Nullable Class<T> requiredType, @Nullable Field field)
+	@Nullable
+	public <T> T convertIfNecessary(@Nullable Object value, @Nullable Class<T> requiredType, @Nullable Field field)
 			throws TypeMismatchException {
 
 		return getTypeConverter().convertIfNecessary(value, requiredType, field);

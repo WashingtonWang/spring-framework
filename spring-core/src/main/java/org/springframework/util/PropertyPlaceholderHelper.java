@@ -56,6 +56,7 @@ public class PropertyPlaceholderHelper {
 
 	private final String simplePrefix;
 
+	@Nullable
 	private final String valueSeparator;
 
 	private final boolean ignoreUnresolvablePlaceholders;
@@ -108,12 +109,7 @@ public class PropertyPlaceholderHelper {
 	 */
 	public String replacePlaceholders(String value, final Properties properties) {
 		Assert.notNull(properties, "'properties' must not be null");
-		return replacePlaceholders(value, new PlaceholderResolver() {
-			@Override
-			public String resolvePlaceholder(String placeholderName) {
-				return properties.getProperty(placeholderName);
-			}
-		});
+		return replacePlaceholders(value, placeholderName -> properties.getProperty(placeholderName));
 	}
 
 	/**

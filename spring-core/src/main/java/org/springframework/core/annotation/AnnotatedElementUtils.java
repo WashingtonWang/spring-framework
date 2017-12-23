@@ -21,6 +21,7 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -100,6 +101,7 @@ public class AnnotatedElementUtils {
 	/**
 	 * {@code null} constant used to denote that the search algorithm should continue.
 	 */
+	@Nullable
 	private static final Boolean CONTINUE = null;
 
 	private static final Annotation[] EMPTY_ANNOTATION_ARRAY = new Annotation[0];
@@ -117,6 +119,7 @@ public class AnnotatedElementUtils {
 		return new AnnotatedElement() {
 			@Override
 			@SuppressWarnings("unchecked")
+			@Nullable
 			public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
 				for (Annotation ann : annotations) {
 					if (ann.annotationType() == annotationClass) {
@@ -150,7 +153,6 @@ public class AnnotatedElementUtils {
 	 * @see #getMetaAnnotationTypes(AnnotatedElement, String)
 	 * @see #hasMetaAnnotationTypes
 	 */
-	@Nullable
 	public static Set<String> getMetaAnnotationTypes(AnnotatedElement element, Class<? extends Annotation> annotationType) {
 		Assert.notNull(element, "AnnotatedElement must not be null");
 		Assert.notNull(annotationType, "'annotationType' must not be null");
@@ -168,11 +170,10 @@ public class AnnotatedElementUtils {
 	 * @param annotationName the fully qualified class name of the annotation
 	 * type on which to find meta-annotations
 	 * @return the names of all meta-annotations present on the annotation,
-	 * or {@code null} if not found
+	 * or an empty set if none found
 	 * @see #getMetaAnnotationTypes(AnnotatedElement, Class)
 	 * @see #hasMetaAnnotationTypes
 	 */
-	@Nullable
 	public static Set<String> getMetaAnnotationTypes(AnnotatedElement element, String annotationName) {
 		Assert.notNull(element, "AnnotatedElement must not be null");
 		Assert.hasLength(annotationName, "'annotationName' must not be null or empty");
@@ -180,9 +181,9 @@ public class AnnotatedElementUtils {
 		return getMetaAnnotationTypes(element, AnnotationUtils.getAnnotation(element, annotationName));
 	}
 
-	private static Set<String> getMetaAnnotationTypes(AnnotatedElement element, Annotation composed) {
+	private static Set<String> getMetaAnnotationTypes(AnnotatedElement element, @Nullable Annotation composed) {
 		if (composed == null) {
-			return null;
+			return Collections.emptySet();
 		}
 
 		try {
@@ -195,7 +196,7 @@ public class AnnotatedElementUtils {
 						return CONTINUE;
 					}
 				}, new HashSet<>(), 1);
-			return (!types.isEmpty() ? types : null);
+			return types;
 		}
 		catch (Throwable ex) {
 			AnnotationUtils.rethrowAnnotationConfigurationException(ex);
@@ -422,7 +423,7 @@ public class AnnotatedElementUtils {
 
 		// Exhaustive retrieval of merged annotation attributes...
 		AnnotationAttributes attributes = getMergedAnnotationAttributes(element, annotationType);
-		return AnnotationUtils.synthesizeAnnotation(attributes, annotationType, element);
+		return (attributes != null ? AnnotationUtils.synthesizeAnnotation(attributes, annotationType, element) : null);
 	}
 
 	/**
@@ -579,9 +580,7 @@ public class AnnotatedElementUtils {
 			public Object process(@Nullable AnnotatedElement annotatedElement, Annotation annotation, int metaDepth) {
 				AnnotationAttributes annotationAttributes = AnnotationUtils.getAnnotationAttributes(
 						annotation, classValuesAsString, nestedAnnotationsAsMap);
-				for (Map.Entry<String, Object> entry : annotationAttributes.entrySet()) {
-					attributesMap.add(entry.getKey(), entry.getValue());
-				}
+				annotationAttributes.forEach(attributesMap::add);
 				return CONTINUE;
 			}
 		});
@@ -725,7 +724,7 @@ public class AnnotatedElementUtils {
 
 		// Exhaustive retrieval of merged annotation attributes...
 		AnnotationAttributes attributes = findMergedAnnotationAttributes(element, annotationType, false, false);
-		return AnnotationUtils.synthesizeAnnotation(attributes, annotationType, element);
+		return (attributes != null ? AnnotationUtils.synthesizeAnnotation(attributes, annotationType, element) : null);
 	}
 
 	/**
@@ -844,7 +843,8 @@ public class AnnotatedElementUtils {
 	 * @return the result of the processor, potentially {@code null}
 	 */
 	@Nullable
-	private static <T> T searchWithGetSemantics(AnnotatedElement element, @Nullable Class<? extends Annotation> annotationType,
+	private static <T> T searchWithGetSemantics(AnnotatedElement element,
+			@Nullable Class<? extends Annotation> annotationType,
 			@Nullable String annotationName, Processor<T> processor) {
 
 		return searchWithGetSemantics(element, annotationType, annotationName, null, processor);
@@ -865,8 +865,9 @@ public class AnnotatedElementUtils {
 	 * @since 4.3
 	 */
 	@Nullable
-	private static <T> T searchWithGetSemantics(AnnotatedElement element, Class<? extends Annotation> annotationType,
-			@Nullable String annotationName, @Nullable Class<? extends Annotation> containerType, Processor<T> processor) {
+	private static <T> T searchWithGetSemantics(AnnotatedElement element,
+			@Nullable Class<? extends Annotation> annotationType, @Nullable String annotationName,
+			@Nullable Class<? extends Annotation> containerType, Processor<T> processor) {
 
 		try {
 			return searchWithGetSemantics(element, annotationType, annotationName, containerType, processor,
@@ -896,8 +897,9 @@ public class AnnotatedElementUtils {
 	 * @return the result of the processor, potentially {@code null}
 	 */
 	@Nullable
-	private static <T> T searchWithGetSemantics(AnnotatedElement element, @Nullable Class<? extends Annotation> annotationType,
-			@Nullable String annotationName, @Nullable Class<? extends Annotation> containerType, Processor<T> processor,
+	private static <T> T searchWithGetSemantics(AnnotatedElement element,
+			@Nullable Class<? extends Annotation> annotationType, @Nullable String annotationName,
+			@Nullable Class<? extends Annotation> containerType, Processor<T> processor,
 			Set<AnnotatedElement> visited, int metaDepth) {
 
 		Assert.notNull(element, "AnnotatedElement must not be null");
@@ -960,9 +962,9 @@ public class AnnotatedElementUtils {
 	 */
 	@Nullable
 	private static <T> T searchWithGetSemanticsInAnnotations(@Nullable AnnotatedElement element,
-			List<Annotation> annotations, Class<? extends Annotation> annotationType, String annotationName,
-			@Nullable Class<? extends Annotation> containerType, Processor<T> processor, Set<AnnotatedElement> visited,
-			int metaDepth) {
+			List<Annotation> annotations, @Nullable Class<? extends Annotation> annotationType,
+			@Nullable String annotationName, @Nullable Class<? extends Annotation> containerType,
+			Processor<T> processor, Set<AnnotatedElement> visited, int metaDepth) {
 
 		// Search in annotations
 		for (Annotation annotation : annotations) {
@@ -1029,7 +1031,8 @@ public class AnnotatedElementUtils {
 	 * @since 4.2
 	 */
 	@Nullable
-	private static <T> T searchWithFindSemantics(AnnotatedElement element, @Nullable Class<? extends Annotation> annotationType,
+	private static <T> T searchWithFindSemantics(AnnotatedElement element,
+			@Nullable Class<? extends Annotation> annotationType,
 			@Nullable String annotationName, Processor<T> processor) {
 
 		return searchWithFindSemantics(element, annotationType, annotationName, null, processor);
@@ -1050,8 +1053,9 @@ public class AnnotatedElementUtils {
 	 * @since 4.3
 	 */
 	@Nullable
-	private static <T> T searchWithFindSemantics(AnnotatedElement element, Class<? extends Annotation> annotationType,
-			@Nullable String annotationName, @Nullable Class<? extends Annotation> containerType, Processor<T> processor) {
+	private static <T> T searchWithFindSemantics(AnnotatedElement element,
+			@Nullable Class<? extends Annotation> annotationType, @Nullable String annotationName,
+			@Nullable Class<? extends Annotation> containerType, Processor<T> processor) {
 
 		if (containerType != null && !processor.aggregates()) {
 			throw new IllegalArgumentException(
@@ -1087,8 +1091,9 @@ public class AnnotatedElementUtils {
 	 * @since 4.2
 	 */
 	@Nullable
-	private static <T> T searchWithFindSemantics(AnnotatedElement element, Class<? extends Annotation> annotationType,
-			String annotationName, @Nullable Class<? extends Annotation> containerType, Processor<T> processor,
+	private static <T> T searchWithFindSemantics(AnnotatedElement element,
+			@Nullable Class<? extends Annotation> annotationType, @Nullable String annotationName,
+			@Nullable Class<? extends Annotation> containerType, Processor<T> processor,
 			Set<AnnotatedElement> visited, int metaDepth) {
 
 		Assert.notNull(element, "AnnotatedElement must not be null");
@@ -1108,7 +1113,7 @@ public class AnnotatedElementUtils {
 								processor.alwaysProcesses()) {
 							T result = processor.process(element, annotation, metaDepth);
 							if (result != null) {
-								if (processor.aggregates() && metaDepth == 0) {
+								if (aggregatedResults != null && metaDepth == 0) {
 									aggregatedResults.add(result);
 								}
 								else {
@@ -1120,7 +1125,7 @@ public class AnnotatedElementUtils {
 						else if (currentAnnotationType == containerType) {
 							for (Annotation contained : getRawAnnotationsFromContainer(element, annotation)) {
 								T result = processor.process(element, contained, metaDepth);
-								if (result != null) {
+								if (aggregatedResults != null && result != null) {
 									// No need to post-process since repeatable annotations within a
 									// container cannot be composed annotations.
 									aggregatedResults.add(result);
@@ -1138,7 +1143,7 @@ public class AnnotatedElementUtils {
 								containerType, processor, visited, metaDepth + 1);
 						if (result != null) {
 							processor.postProcess(currentAnnotationType, annotation, result);
-							if (processor.aggregates() && metaDepth == 0) {
+							if (aggregatedResults != null && metaDepth == 0) {
 								aggregatedResults.add(result);
 							}
 							else {
@@ -1148,7 +1153,7 @@ public class AnnotatedElementUtils {
 					}
 				}
 
-				if (processor.aggregates()) {
+				if (aggregatedResults != null) {
 					// Prepend to support top-down ordering within class hierarchies
 					processor.getAggregatedResults().addAll(0, aggregatedResults);
 				}
@@ -1231,9 +1236,10 @@ public class AnnotatedElementUtils {
 		return null;
 	}
 
-	private static <T> T searchOnInterfaces(Method method, Class<? extends Annotation> annotationType,
-			String annotationName, Class<? extends Annotation> containerType, Processor<T> processor,
-			Set<AnnotatedElement> visited, int metaDepth, Class<?>[] ifcs) {
+	@Nullable
+	private static <T> T searchOnInterfaces(Method method, @Nullable Class<? extends Annotation> annotationType,
+			@Nullable String annotationName, @Nullable Class<? extends Annotation> containerType,
+			Processor<T> processor, Set<AnnotatedElement> visited, int metaDepth, Class<?>[] ifcs) {
 
 		for (Class<?> iface : ifcs) {
 			if (AnnotationUtils.isInterfaceWithAnnotatedMethods(iface)) {
@@ -1260,11 +1266,14 @@ public class AnnotatedElementUtils {
 	 * @since 4.3
 	 */
 	@SuppressWarnings("unchecked")
-	private static <A extends Annotation> A[] getRawAnnotationsFromContainer(AnnotatedElement element,
-			Annotation container) {
+	private static <A extends Annotation> A[] getRawAnnotationsFromContainer(
+			@Nullable AnnotatedElement element, Annotation container) {
 
 		try {
-			return (A[]) AnnotationUtils.getValue(container);
+			A[] value = (A[]) AnnotationUtils.getValue(container);
+			if (value != null) {
+				return value;
+			}
 		}
 		catch (Throwable ex) {
 			AnnotationUtils.handleIntrospectionFailure(element, ex);
@@ -1417,8 +1426,8 @@ public class AnnotatedElementUtils {
 		 * <p>If this method returns {@code true}, then {@link #getAggregatedResults()}
 		 * must return a non-null value.
 		 * @return {@code true} if this processor supports aggregated results
-		 * @see #getAggregatedResults
 		 * @since 4.3
+		 * @see #getAggregatedResults
 		 */
 		boolean aggregates();
 
@@ -1429,10 +1438,9 @@ public class AnnotatedElementUtils {
 		 * responsible for asking this processor if it {@link #aggregates} results
 		 * and then adding the post-processed results to the list returned by this
 		 * method.
-		 * @return the list of results aggregated by this processor
-		 * (never {@code null} unless {@link #aggregates} returns {@code false})
-		 * @see #aggregates
+		 * @return the list of results aggregated by this processor (never {@code null})
 		 * @since 4.3
+		 * @see #aggregates
 		 */
 		List<T> getAggregatedResults();
 	}
@@ -1487,7 +1495,6 @@ public class AnnotatedElementUtils {
 	static class AlwaysTrueBooleanAnnotationProcessor extends SimpleAnnotationProcessor<Boolean> {
 
 		@Override
-		@Nullable
 		public final Boolean process(@Nullable AnnotatedElement annotatedElement, Annotation annotation, int metaDepth) {
 			return Boolean.TRUE;
 		}
@@ -1529,7 +1536,7 @@ public class AnnotatedElementUtils {
 			this.classValuesAsString = classValuesAsString;
 			this.nestedAnnotationsAsMap = nestedAnnotationsAsMap;
 			this.aggregates = aggregates;
-			this.aggregatedResults = (aggregates ? new ArrayList<>() : null);
+			this.aggregatedResults = (aggregates ? new ArrayList<>() : Collections.emptyList());
 		}
 
 		@Override
@@ -1597,7 +1604,7 @@ public class AnnotatedElementUtils {
 			}
 		}
 
-		private void overrideAttributes(AnnotatedElement element, Annotation annotation,
+		private void overrideAttributes(@Nullable AnnotatedElement element, Annotation annotation,
 				AnnotationAttributes attributes, String sourceAttributeName, List<String> targetAttributeNames) {
 
 			Object adaptedValue = getAdaptedValue(element, annotation, sourceAttributeName);
@@ -1607,13 +1614,16 @@ public class AnnotatedElementUtils {
 			}
 		}
 
-		private void overrideAttribute(AnnotatedElement element, Annotation annotation, AnnotationAttributes attributes,
-				String sourceAttributeName, String targetAttributeName) {
+		private void overrideAttribute(@Nullable AnnotatedElement element, Annotation annotation,
+				AnnotationAttributes attributes, String sourceAttributeName, String targetAttributeName) {
 
 			attributes.put(targetAttributeName, getAdaptedValue(element, annotation, sourceAttributeName));
 		}
 
-		private Object getAdaptedValue(AnnotatedElement element, Annotation annotation, String sourceAttributeName) {
+		@Nullable
+		private Object getAdaptedValue(
+				@Nullable AnnotatedElement element, Annotation annotation, String sourceAttributeName) {
+
 			Object value = AnnotationUtils.getValue(annotation, sourceAttributeName);
 			return AnnotationUtils.adaptValue(element, value, this.classValuesAsString, this.nestedAnnotationsAsMap);
 		}

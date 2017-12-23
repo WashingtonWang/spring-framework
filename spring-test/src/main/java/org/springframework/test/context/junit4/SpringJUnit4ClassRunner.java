@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.internal.runners.model.ReflectiveCallable;
@@ -105,10 +104,11 @@ public class SpringJUnit4ClassRunner extends BlockJUnit4ClassRunner {
 		Assert.state(ClassUtils.isPresent("org.junit.internal.Throwables", SpringJUnit4ClassRunner.class.getClassLoader()),
 				"SpringJUnit4ClassRunner requires JUnit 4.12 or higher.");
 
-		withRulesMethod = ReflectionUtils.findMethod(SpringJUnit4ClassRunner.class, "withRules",
+		Method method = ReflectionUtils.findMethod(SpringJUnit4ClassRunner.class, "withRules",
 				FrameworkMethod.class, Object.class, Statement.class);
-		Assert.state(withRulesMethod != null, "SpringJUnit4ClassRunner requires JUnit 4.12 or higher.");
-		ReflectionUtils.makeAccessible(withRulesMethod);
+		Assert.state(method != null, "SpringJUnit4ClassRunner requires JUnit 4.12 or higher");
+		ReflectionUtils.makeAccessible(method);
+		withRulesMethod = method;
 	}
 
 
@@ -310,7 +310,9 @@ public class SpringJUnit4ClassRunner extends BlockJUnit4ClassRunner {
 	 * Invoke JUnit's private {@code withRules()} method using reflection.
 	 */
 	private Statement withRulesReflectively(FrameworkMethod frameworkMethod, Object testInstance, Statement statement) {
-		return (Statement) ReflectionUtils.invokeMethod(withRulesMethod, this, frameworkMethod, testInstance, statement);
+		Object result = ReflectionUtils.invokeMethod(withRulesMethod, this, frameworkMethod, testInstance, statement);
+		Assert.state(result instanceof Statement, "withRules mismatch");
+		return (Statement) result;
 	}
 
 	/**

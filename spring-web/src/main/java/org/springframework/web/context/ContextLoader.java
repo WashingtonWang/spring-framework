@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.servlet.ServletContext;
 
 import org.apache.commons.logging.Log;
@@ -159,12 +158,14 @@ public class ContextLoader {
 	 * The 'current' WebApplicationContext, if the ContextLoader class is
 	 * deployed in the web app ClassLoader itself.
 	 */
+	@Nullable
 	private static volatile WebApplicationContext currentContext;
 
 
 	/**
 	 * The root WebApplicationContext instance that this loader manages.
 	 */
+	@Nullable
 	private WebApplicationContext context;
 
 	/** Actual ApplicationContextInitializer instances to apply to the context */
@@ -236,7 +237,7 @@ public class ContextLoader {
 	 * @see #customizeContext
 	 */
 	@SuppressWarnings("unchecked")
-	public void setContextInitializers(ApplicationContextInitializer<?>... initializers) {
+	public void setContextInitializers(@Nullable ApplicationContextInitializer<?>... initializers) {
 		if (initializers != null) {
 			for (ApplicationContextInitializer<?> initializer : initializers) {
 				this.contextInitializers.add((ApplicationContextInitializer<ConfigurableApplicationContext>) initializer);

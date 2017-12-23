@@ -43,6 +43,7 @@ public class AcceptHeaderLocaleResolver implements LocaleResolver {
 
 	private final List<Locale> supportedLocales = new ArrayList<>(4);
 
+	@Nullable
 	private Locale defaultLocale;
 
 
@@ -53,7 +54,7 @@ public class AcceptHeaderLocaleResolver implements LocaleResolver {
 	 * @param locales the supported locales
 	 * @since 4.3
 	 */
-	public void setSupportedLocales(List<Locale> locales) {
+	public void setSupportedLocales(@Nullable List<Locale> locales) {
 		this.supportedLocales.clear();
 		if (locales != null) {
 			this.supportedLocales.addAll(locales);
@@ -77,7 +78,7 @@ public class AcceptHeaderLocaleResolver implements LocaleResolver {
 	 * @param defaultLocale the default locale to use
 	 * @since 4.3
 	 */
-	public void setDefaultLocale(Locale defaultLocale) {
+	public void setDefaultLocale(@Nullable Locale defaultLocale) {
 		this.defaultLocale = defaultLocale;
 	}
 
@@ -126,7 +127,7 @@ public class AcceptHeaderLocaleResolver implements LocaleResolver {
 	}
 
 	@Override
-	public void setLocale(HttpServletRequest request, HttpServletResponse response, @Nullable Locale locale) {
+	public void setLocale(HttpServletRequest request, @Nullable HttpServletResponse response, @Nullable Locale locale) {
 		throw new UnsupportedOperationException(
 				"Cannot change HTTP accept header - use a different locale resolution strategy");
 	}

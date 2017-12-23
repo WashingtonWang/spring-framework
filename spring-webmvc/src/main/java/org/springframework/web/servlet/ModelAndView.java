@@ -47,12 +47,15 @@ import org.springframework.util.CollectionUtils;
 public class ModelAndView {
 
 	/** View instance or view name String */
+	@Nullable
 	private Object view;
 
 	/** Model Map */
+	@Nullable
 	private ModelMap model;
 
 	/** Optional HTTP status for the response */
+	@Nullable
 	private HttpStatus status;
 
 	/** Indicates whether or not this instance has been cleared with a call to {@link #clear()} */
@@ -145,7 +148,7 @@ public class ModelAndView {
 	 * (to be set just prior to View rendering)
 	 * @since 4.3
 	 */
-	public ModelAndView(String viewName, @Nullable Map<String, ?> model, HttpStatus status) {
+	public ModelAndView(@Nullable String viewName, @Nullable Map<String, ?> model, @Nullable HttpStatus status) {
 		this.view = viewName;
 		if (model != null) {
 			getModelMap().addAllAttributes(model);
@@ -182,7 +185,7 @@ public class ModelAndView {
 	 * DispatcherServlet via a ViewResolver. Will override any
 	 * pre-existing view name or View.
 	 */
-	public void setViewName(String viewName) {
+	public void setViewName(@Nullable String viewName) {
 		this.view = viewName;
 	}
 
@@ -199,7 +202,7 @@ public class ModelAndView {
 	 * Set a View object for this ModelAndView. Will override any
 	 * pre-existing view name or View.
 	 */
-	public void setView(View view) {
+	public void setView(@Nullable View view) {
 		this.view = view;
 	}
 
@@ -261,7 +264,7 @@ public class ModelAndView {
 	 * <p>The response status is set just prior to View rendering.
 	 * @since 4.3
 	 */
-	public void setStatus(HttpStatus status) {
+	public void setStatus(@Nullable HttpStatus status) {
 		this.status = status;
 	}
 
@@ -304,7 +307,7 @@ public class ModelAndView {
 	 * @see ModelMap#addAllAttributes(Map)
 	 * @see #getModelMap()
 	 */
-	public ModelAndView addAllObjects(Map<String, ?> modelMap) {
+	public ModelAndView addAllObjects(@Nullable Map<String, ?> modelMap) {
 		getModelMap().addAllAttributes(modelMap);
 		return this;
 	}

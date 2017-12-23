@@ -21,7 +21,6 @@ import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import javax.servlet.ServletException;
 
 import org.springframework.http.HttpMethod;
@@ -40,6 +39,7 @@ public class HttpRequestMethodNotSupportedException extends ServletException {
 
 	private String method;
 
+	@Nullable
 	private String[] supportedMethods;
 
 
@@ -66,7 +66,7 @@ public class HttpRequestMethodNotSupportedException extends ServletException {
 	 * @param supportedMethods the actually supported HTTP methods (may be {@code null})
 	 */
 	public HttpRequestMethodNotSupportedException(String method, @Nullable Collection<String> supportedMethods) {
-		this(method, StringUtils.toStringArray(supportedMethods));
+		this(method, (supportedMethods != null ? StringUtils.toStringArray(supportedMethods) : null));
 	}
 
 	/**
@@ -84,7 +84,7 @@ public class HttpRequestMethodNotSupportedException extends ServletException {
 	 * @param supportedMethods the actually supported HTTP methods
 	 * @param msg the detail message
 	 */
-	public HttpRequestMethodNotSupportedException(String method, String[] supportedMethods, String msg) {
+	public HttpRequestMethodNotSupportedException(String method, @Nullable String[] supportedMethods, String msg) {
 		super(msg);
 		this.method = method;
 		this.supportedMethods = supportedMethods;

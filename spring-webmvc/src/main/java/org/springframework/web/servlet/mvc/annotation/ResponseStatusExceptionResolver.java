@@ -17,7 +17,6 @@
 package org.springframework.web.servlet.mvc.annotation;
 
 import java.io.IOException;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -56,6 +55,7 @@ import org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver;
  */
 public class ResponseStatusExceptionResolver extends AbstractHandlerExceptionResolver implements MessageSourceAware {
 
+	@Nullable
 	private MessageSource messageSource;
 
 
@@ -66,6 +66,7 @@ public class ResponseStatusExceptionResolver extends AbstractHandlerExceptionRes
 
 
 	@Override
+	@Nullable
 	protected ModelAndView doResolveException(HttpServletRequest request, HttpServletResponse response,
 			@Nullable Object handler, Exception ex) {
 

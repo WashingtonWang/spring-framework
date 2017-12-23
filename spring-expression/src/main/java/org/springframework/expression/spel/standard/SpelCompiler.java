@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,6 @@
 
 package org.springframework.expression.spel.standard;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
@@ -75,8 +72,7 @@ public class SpelCompiler implements Opcodes {
 
 	// A compiler is created for each classloader, it manages a child class loader of that
 	// classloader and the child is used to load the compiled expressions.
-	private static final Map<ClassLoader, SpelCompiler> compilers =
-			new ConcurrentReferenceHashMap<>();
+	private static final Map<ClassLoader, SpelCompiler> compilers = new ConcurrentReferenceHashMap<>();
 
 	// The child ClassLoader used to load the compiled expression classes
 	private ChildClassLoader ccl;
@@ -84,19 +80,20 @@ public class SpelCompiler implements Opcodes {
 	// Counter suffix for generated classes within this SpelCompiler instance
 	private final AtomicInteger suffixId = new AtomicInteger(1);
 
-	private SpelCompiler(ClassLoader classloader) {
+
+	private SpelCompiler(@Nullable ClassLoader classloader) {
 		this.ccl = new ChildClassLoader(classloader);
 	}
 
+
 	/**
-	 * Attempt compilation of the supplied expression. A check is
-	 * made to see if it is compilable before compilation proceeds. The
-	 * check involves visiting all the nodes in the expression Ast and
-	 * ensuring enough state is known about them that bytecode can
-	 * be generated for them.
+	 * Attempt compilation of the supplied expression. A check is made to see
+	 * if it is compilable before compilation proceeds. The check involves
+	 * visiting all the nodes in the expression Ast and ensuring enough state
+	 * is known about them that bytecode can be generated for them.
 	 * @param expression the expression to compile
-	 * @return an instance of the class implementing the compiled expression, or null
-	 * if compilation is not possible
+	 * @return an instance of the class implementing the compiled expression,
+	 * or {@code null} if compilation is not possible
 	 */
 	@Nullable
 	public CompiledExpression compile(SpelNodeImpl expression) {
@@ -192,7 +189,6 @@ public class SpelCompiler implements Opcodes {
 	 * because they anchor compiled classes in memory and prevent GC.  If you have expressions
 	 * continually recompiling over time then by replacing the classloader periodically
 	 * at least some of the older variants can be garbage collected.
-	 * 
 	 * @param name name of the class
 	 * @param bytes bytecode for the class
 	 * @return the Class object for the compiled expression
@@ -212,7 +208,7 @@ public class SpelCompiler implements Opcodes {
 	 * @param classLoader the ClassLoader to use as the basis for compilation
 	 * @return a corresponding SpelCompiler instance
 	 */
-	public static SpelCompiler getCompiler(ClassLoader classLoader) {
+	public static SpelCompiler getCompiler(@Nullable ClassLoader classLoader) {
 		ClassLoader clToUse = (classLoader != null ? classLoader : ClassUtils.getDefaultClassLoader());
 		synchronized (compilers) {
 			SpelCompiler compiler = compilers.get(clToUse);
@@ -245,40 +241,6 @@ public class SpelCompiler implements Opcodes {
 		}
 	}
 
-	/**
-	 * For debugging purposes, dump the specified byte code into a file on the disk.
-	 * Not yet hooked in, needs conditionally calling based on a sys prop.
-	 * @param expressionText the text of the expression compiled
-	 * @param name the name of the class being used for the compiled expression
-	 * @param bytecode the bytecode for the generated class
-	 */
-	@SuppressWarnings("unused")
-	private static void dump(String expressionText, String name, byte[] bytecode) {
-		String nameToUse = name.replace('.', '/');
-		String dir = (nameToUse.indexOf('/') != -1 ? nameToUse.substring(0, nameToUse.lastIndexOf('/')) : "");
-		String dumpLocation = null;
-		try {
-			File tempFile = File.createTempFile("tmp", null);
-			dumpLocation = tempFile + File.separator + nameToUse + ".class";
-			tempFile.delete();
-			File f = new File(tempFile, dir);
-			f.mkdirs();
-			// System.out.println("Expression '" + expressionText + "' compiled code dumped to " + dumpLocation);
-			if (logger.isDebugEnabled()) {
-				logger.debug("Expression '" + expressionText + "' compiled code dumped to " + dumpLocation);
-			}
-			f = new File(dumpLocation);
-			FileOutputStream fos = new FileOutputStream(f);
-			fos.write(bytecode);
-			fos.flush();
-			fos.close();
-		}
-		catch (IOException ex) {
-			throw new IllegalStateException(
-					"Unexpected problem dumping class '" + nameToUse + "' into " + dumpLocation, ex);
-		}
-	}
-
 
 	/**
 	 * A ChildClassLoader will load the generated compiled expression classes.
@@ -289,7 +251,7 @@ public class SpelCompiler implements Opcodes {
 
 		private int classesDefinedCount = 0;
 
-		public ChildClassLoader(ClassLoader classLoader) {
+		public ChildClassLoader(@Nullable ClassLoader classLoader) {
 			super(NO_URLS, classLoader);
 		}
 

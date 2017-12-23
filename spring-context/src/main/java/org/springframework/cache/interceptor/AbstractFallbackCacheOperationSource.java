@@ -83,6 +83,7 @@ public abstract class AbstractFallbackCacheOperationSource implements CacheOpera
 	 * is not cacheable
 	 */
 	@Override
+	@Nullable
 	public Collection<CacheOperation> getCacheOperations(Method method, @Nullable Class<?> targetClass) {
 		if (method.getDeclaringClass() == Object.class) {
 			return null;
@@ -122,7 +123,7 @@ public abstract class AbstractFallbackCacheOperationSource implements CacheOpera
 	}
 
 	@Nullable
-	private Collection<CacheOperation> computeCacheOperations(Method method, Class<?> targetClass) {
+	private Collection<CacheOperation> computeCacheOperations(Method method, @Nullable Class<?> targetClass) {
 		// Don't allow no-public methods as required.
 		if (allowPublicMethodsOnly() && !Modifier.isPublic(method.getModifiers())) {
 			return null;

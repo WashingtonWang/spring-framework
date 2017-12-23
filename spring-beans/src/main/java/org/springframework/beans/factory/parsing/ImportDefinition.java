@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,10 @@ public class ImportDefinition implements BeanMetadataElement {
 
 	private final String importedResource;
 
+	@Nullable
 	private final Resource[] actualResources;
 
+	@Nullable
 	private final Object source;
 
 
@@ -59,7 +61,7 @@ public class ImportDefinition implements BeanMetadataElement {
 	 * @param importedResource the location of the imported resource
 	 * @param source the source object (may be {@code null})
 	 */
-	public ImportDefinition(String importedResource, Resource[] actualResources, @Nullable Object source) {
+	public ImportDefinition(String importedResource, @Nullable Resource[] actualResources, @Nullable Object source) {
 		Assert.notNull(importedResource, "Imported resource must not be null");
 		this.importedResource = importedResource;
 		this.actualResources = actualResources;
@@ -74,11 +76,13 @@ public class ImportDefinition implements BeanMetadataElement {
 		return this.importedResource;
 	}
 
+	@Nullable
 	public final Resource[] getActualResources() {
 		return this.actualResources;
 	}
 
 	@Override
+	@Nullable
 	public final Object getSource() {
 		return this.source;
 	}

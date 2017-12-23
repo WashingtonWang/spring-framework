@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,9 +43,14 @@ import org.springframework.util.StringUtils;
  */
 public class StandardScriptEvaluator implements ScriptEvaluator, BeanClassLoaderAware {
 
-	private volatile ScriptEngineManager scriptEngineManager;
-
+	@Nullable
 	private String engineName;
+
+	@Nullable
+	private volatile Bindings globalBindings;
+
+	@Nullable
+	private volatile ScriptEngineManager scriptEngineManager;
 
 
 	/**
@@ -103,25 +108,36 @@ public class StandardScriptEvaluator implements ScriptEvaluator, BeanClassLoader
 	 * @see javax.script.SimpleBindings
 	 */
 	public void setGlobalBindings(Map<String, Object> globalBindings) {
-		if (globalBindings != null) {
-			this.scriptEngineManager.setBindings(StandardScriptUtils.getBindings(globalBindings));
+		Bindings bindings = StandardScriptUtils.getBindings(globalBindings);
+		this.globalBindings = bindings;
+		ScriptEngineManager scriptEngineManager = this.scriptEngineManager;
+		if (scriptEngineManager != null) {
+			scriptEngineManager.setBindings(bindings);
 		}
 	}
 
 	@Override
-	public void setBeanClassLoader(@Nullable ClassLoader classLoader) {
-		if (this.scriptEngineManager == null) {
-			this.scriptEngineManager = new ScriptEngineManager(classLoader);
+	public void setBeanClassLoader(ClassLoader classLoader) {
+		ScriptEngineManager scriptEngineManager = this.scriptEngineManager;
+		if (scriptEngineManager == null) {
+			scriptEngineManager = new ScriptEngineManager(classLoader);
+			this.scriptEngineManager = scriptEngineManager;
+			Bindings bindings = this.globalBindings;
+			if (bindings != null) {
+				scriptEngineManager.setBindings(bindings);
+			}
 		}
 	}
 
 
 	@Override
+	@Nullable
 	public Object evaluate(ScriptSource script) {
 		return evaluate(script, null);
 	}
 
 	@Override
+	@Nullable
 	public Object evaluate(ScriptSource script, @Nullable Map<String, Object> argumentBindings) {
 		ScriptEngine engine = getScriptEngine(script);
 		try {
@@ -147,12 +163,14 @@ public class StandardScriptEvaluator implements ScriptEvaluator, BeanClassLoader
 	 * @return the ScriptEngine (never {@code null})
 	 */
 	protected ScriptEngine getScriptEngine(ScriptSource script) {
-		if (this.scriptEngineManager == null) {
-			this.scriptEngineManager = new ScriptEngineManager();
+		ScriptEngineManager scriptEngineManager = this.scriptEngineManager;
+		if (scriptEngineManager == null) {
+			scriptEngineManager = new ScriptEngineManager();
+			this.scriptEngineManager = scriptEngineManager;
 		}
 
 		if (StringUtils.hasText(this.engineName)) {
-			return StandardScriptUtils.retrieveEngineByName(this.scriptEngineManager, this.engineName);
+			return StandardScriptUtils.retrieveEngineByName(scriptEngineManager, this.engineName);
 		}
 		else if (script instanceof ResourceScriptSource) {
 			Resource resource = ((ResourceScriptSource) script).getResource();
@@ -161,7 +179,7 @@ public class StandardScriptEvaluator implements ScriptEvaluator, BeanClassLoader
 				throw new IllegalStateException(
 						"No script language defined, and no file extension defined for resource: " + resource);
 			}
-			ScriptEngine engine = this.scriptEngineManager.getEngineByExtension(extension);
+			ScriptEngine engine = scriptEngineManager.getEngineByExtension(extension);
 			if (engine == null) {
 				throw new IllegalStateException("No matching engine found for file extension '" + extension + "'");
 			}

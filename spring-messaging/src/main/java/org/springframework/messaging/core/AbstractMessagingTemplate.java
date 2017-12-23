@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,45 +34,60 @@ public abstract class AbstractMessagingTemplate<D> extends AbstractMessageReceiv
 		implements MessageRequestReplyOperations<D> {
 
 	@Override
+	@Nullable
 	public Message<?> sendAndReceive(Message<?> requestMessage) {
 		return sendAndReceive(getRequiredDefaultDestination(), requestMessage);
 	}
 
 	@Override
+	@Nullable
 	public Message<?> sendAndReceive(D destination, Message<?> requestMessage) {
 		return doSendAndReceive(destination, requestMessage);
 	}
 
+	@Nullable
 	protected abstract Message<?> doSendAndReceive(D destination, Message<?> requestMessage);
 
 
 	@Override
+	@Nullable
 	public <T> T convertSendAndReceive(Object request, Class<T> targetClass) {
 		return convertSendAndReceive(getRequiredDefaultDestination(), request, targetClass);
 	}
 
 	@Override
+	@Nullable
 	public <T> T convertSendAndReceive(D destination, Object request, Class<T> targetClass) {
 		return convertSendAndReceive(destination, request, null, targetClass);
 	}
 
 	@Override
-	public <T> T convertSendAndReceive(D destination, Object request, @Nullable Map<String, Object> headers, Class<T> targetClass) {
+	@Nullable
+	public <T> T convertSendAndReceive(
+			D destination, Object request, @Nullable Map<String, Object> headers, Class<T> targetClass) {
+
 		return convertSendAndReceive(destination, request, headers, targetClass, null);
 	}
 
 	@Override
-	public <T> T convertSendAndReceive(Object request, Class<T> targetClass, @Nullable MessagePostProcessor postProcessor) {
+	@Nullable
+	public <T> T convertSendAndReceive(
+			Object request, Class<T> targetClass, @Nullable MessagePostProcessor postProcessor) {
+
 		return convertSendAndReceive(getRequiredDefaultDestination(), request, targetClass, postProcessor);
 	}
 
 	@Override
-	public <T> T convertSendAndReceive(D destination, Object request, Class<T> targetClass, MessagePostProcessor postProcessor) {
+	@Nullable
+	public <T> T convertSendAndReceive(D destination, Object request, Class<T> targetClass,
+			@Nullable MessagePostProcessor postProcessor) {
+
 		return convertSendAndReceive(destination, request, null, targetClass, postProcessor);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
+	@Nullable
 	public <T> T convertSendAndReceive(D destination, Object request, @Nullable Map<String, Object> headers,
 			Class<T> targetClass, @Nullable MessagePostProcessor postProcessor) {
 

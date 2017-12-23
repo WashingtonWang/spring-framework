@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,12 +37,16 @@ import org.springframework.util.ObjectUtils;
  */
 public class TypedStringValue implements BeanMetadataElement {
 
+	@Nullable
 	private String value;
 
+	@Nullable
 	private volatile Object targetType;
 
+	@Nullable
 	private Object source;
 
+	@Nullable
 	private String specifiedTypeName;
 
 	private volatile boolean dynamic;
@@ -122,14 +126,14 @@ public class TypedStringValue implements BeanMetadataElement {
 	/**
 	 * Specify the type to convert to.
 	 */
-	public void setTargetTypeName(String targetTypeName) {
-		Assert.notNull(targetTypeName, "'targetTypeName' must not be null");
+	public void setTargetTypeName(@Nullable String targetTypeName) {
 		this.targetType = targetTypeName;
 	}
 
 	/**
 	 * Return the type to convert to.
 	 */
+	@Nullable
 	public String getTargetTypeName() {
 		Object targetTypeValue = this.targetType;
 		if (targetTypeValue instanceof Class) {
@@ -156,11 +160,12 @@ public class TypedStringValue implements BeanMetadataElement {
 	 * @throws ClassNotFoundException if the type cannot be resolved
 	 */
 	@Nullable
-	public Class<?> resolveTargetType(ClassLoader classLoader) throws ClassNotFoundException {
-		if (this.targetType == null) {
+	public Class<?> resolveTargetType(@Nullable ClassLoader classLoader) throws ClassNotFoundException {
+		String typeName = getTargetTypeName();
+		if (typeName == null) {
 			return null;
 		}
-		Class<?> resolvedClass = ClassUtils.forName(getTargetTypeName(), classLoader);
+		Class<?> resolvedClass = ClassUtils.forName(typeName, classLoader);
 		this.targetType = resolvedClass;
 		return resolvedClass;
 	}
@@ -170,11 +175,12 @@ public class TypedStringValue implements BeanMetadataElement {
 	 * Set the configuration source {@code Object} for this metadata element.
 	 * <p>The exact type of the object will depend on the configuration mechanism used.
 	 */
-	public void setSource(Object source) {
+	public void setSource(@Nullable Object source) {
 		this.source = source;
 	}
 
 	@Override
+	@Nullable
 	public Object getSource() {
 		return this.source;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,7 +163,7 @@ public class TypeDescriptor implements Serializable {
 	 * @since 4.0
 	 */
 	public Object getSource() {
-		return (this.resolvableType != null ? this.resolvableType.getSource() : null);
+		return this.resolvableType.getSource();
 	}
 
 	/**
@@ -251,7 +251,6 @@ public class TypeDescriptor implements Serializable {
 	 * @param annotationType the annotation type
 	 * @return the annotation, or {@code null} if no such annotation exists on this type descriptor
 	 */
-	@SuppressWarnings("unchecked")
 	@Nullable
 	public <T extends Annotation> T getAnnotation(Class<T> annotationType) {
 		if (this.annotatedElement.isEmpty()) {
@@ -282,7 +281,7 @@ public class TypeDescriptor implements Serializable {
 			return false;
 		}
 		if (isArray() && typeDescriptor.isArray()) {
-			return getElementTypeDescriptor().isAssignableTo(typeDescriptor.getElementTypeDescriptor());
+			return isNestedAssignable(getElementTypeDescriptor(), typeDescriptor.getElementTypeDescriptor());
 		}
 		else if (isCollection() && typeDescriptor.isCollection()) {
 			return isNestedAssignable(getElementTypeDescriptor(), typeDescriptor.getElementTypeDescriptor());
@@ -296,11 +295,11 @@ public class TypeDescriptor implements Serializable {
 		}
 	}
 
-	private boolean isNestedAssignable(TypeDescriptor nestedTypeDescriptor, TypeDescriptor otherNestedTypeDescriptor) {
-		if (nestedTypeDescriptor == null || otherNestedTypeDescriptor == null) {
-			return true;
-		}
-		return nestedTypeDescriptor.isAssignableTo(otherNestedTypeDescriptor);
+	private boolean isNestedAssignable(@Nullable TypeDescriptor nestedTypeDescriptor,
+			@Nullable TypeDescriptor otherNestedTypeDescriptor) {
+
+		return (nestedTypeDescriptor == null || otherNestedTypeDescriptor == null ||
+				nestedTypeDescriptor.isAssignableTo(otherNestedTypeDescriptor));
 	}
 
 	/**
@@ -355,6 +354,7 @@ public class TypeDescriptor implements Serializable {
 	 * or array type
 	 * @see #narrow(Object)
 	 */
+	@Nullable
 	public TypeDescriptor elementTypeDescriptor(Object element) {
 		return narrow(element, getElementTypeDescriptor());
 	}
@@ -397,6 +397,7 @@ public class TypeDescriptor implements Serializable {
 	 * @throws IllegalStateException if this type is not a {@code java.util.Map}
 	 * @see #narrow(Object)
 	 */
+	@Nullable
 	public TypeDescriptor getMapKeyTypeDescriptor(Object mapKey) {
 		return narrow(mapKey, getMapKeyTypeDescriptor());
 	}
@@ -433,12 +434,13 @@ public class TypeDescriptor implements Serializable {
 	 * @throws IllegalStateException if this type is not a {@code java.util.Map}
 	 * @see #narrow(Object)
 	 */
+	@Nullable
 	public TypeDescriptor getMapValueTypeDescriptor(Object mapValue) {
 		return narrow(mapValue, getMapValueTypeDescriptor());
 	}
 
 	@Nullable
-	private TypeDescriptor narrow(Object value, TypeDescriptor typeDescriptor) {
+	private TypeDescriptor narrow(@Nullable Object value, @Nullable TypeDescriptor typeDescriptor) {
 		if (typeDescriptor != null) {
 			return typeDescriptor.narrow(value);
 		}
@@ -559,7 +561,7 @@ public class TypeDescriptor implements Serializable {
 	 * used to convert collection elements
 	 * @return the collection type descriptor
 	 */
-	public static TypeDescriptor collection(Class<?> collectionType, TypeDescriptor elementTypeDescriptor) {
+	public static TypeDescriptor collection(Class<?> collectionType, @Nullable TypeDescriptor elementTypeDescriptor) {
 		Assert.notNull(collectionType, "Collection type must not be null");
 		if (!Collection.class.isAssignableFrom(collectionType)) {
 			throw new IllegalArgumentException("Collection type must be a [java.util.Collection]");
@@ -582,7 +584,9 @@ public class TypeDescriptor implements Serializable {
 	 * @param valueTypeDescriptor the map's value type, used to convert map values
 	 * @return the map type descriptor
 	 */
-	public static TypeDescriptor map(Class<?> mapType, TypeDescriptor keyTypeDescriptor, TypeDescriptor valueTypeDescriptor) {
+	public static TypeDescriptor map(Class<?> mapType, @Nullable TypeDescriptor keyTypeDescriptor,
+			@Nullable TypeDescriptor valueTypeDescriptor) {
+
 		Assert.notNull(mapType, "Map type must not be null");
 		if (!Map.class.isAssignableFrom(mapType)) {
 			throw new IllegalArgumentException("Map type must be a [java.util.Map]");
@@ -728,9 +732,10 @@ public class TypeDescriptor implements Serializable {
 	 */
 	private class AnnotatedElementAdapter implements AnnotatedElement, Serializable {
 
+		@Nullable
 		private final Annotation[] annotations;
 
-		public AnnotatedElementAdapter(Annotation[] annotations) {
+		public AnnotatedElementAdapter(@Nullable Annotation[] annotations) {
 			this.annotations = annotations;
 		}
 
@@ -745,6 +750,7 @@ public class TypeDescriptor implements Serializable {
 		}
 
 		@Override
+		@Nullable
 		@SuppressWarnings("unchecked")
 		public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
 			for (Annotation annotation : getAnnotations()) {

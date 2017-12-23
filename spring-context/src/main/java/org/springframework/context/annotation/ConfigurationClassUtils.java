@@ -35,7 +35,7 @@ import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.StandardAnnotationMetadata;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
-import org.springframework.lang.NonNullApi;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
@@ -45,7 +45,6 @@ import org.springframework.stereotype.Component;
  * @author Juergen Hoeller
  * @since 3.1
  */
-@NonNullApi
 abstract class ConfigurationClassUtils {
 
 	private static final String CONFIGURATION_CLASS_FULL = "full";
@@ -81,7 +80,7 @@ abstract class ConfigurationClassUtils {
 	 */
 	public static boolean checkConfigurationClassCandidate(BeanDefinition beanDef, MetadataReaderFactory metadataReaderFactory) {
 		String className = beanDef.getBeanClassName();
-		if (className == null) {
+		if (className == null || beanDef.getFactoryMethodName() != null) {
 			return false;
 		}
 
@@ -207,6 +206,7 @@ abstract class ConfigurationClassUtils {
 	 * or {@link Ordered#LOWEST_PRECEDENCE} if none declared
 	 * @since 5.0
 	 */
+	@Nullable
 	public static Integer getOrder(AnnotationMetadata metadata) {
 		Map<String, Object> orderAttributes = metadata.getAnnotationAttributes(Order.class.getName());
 		return (orderAttributes != null ? ((Integer) orderAttributes.get(AnnotationUtils.VALUE)) : null);

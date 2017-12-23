@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,7 +144,8 @@ public class MessageListenerAdapter extends AbstractAdaptableMessageListener imp
 	 * @param delegate the delegate object
 	 */
 	public MessageListenerAdapter(Object delegate) {
-		setDelegate(delegate);
+		Assert.notNull(delegate, "Delegate must not be null");
+		this.delegate = delegate;
 	}
 
 
@@ -202,14 +203,9 @@ public class MessageListenerAdapter extends AbstractAdaptableMessageListener imp
 		Object delegate = getDelegate();
 		if (delegate != this) {
 			if (delegate instanceof SessionAwareMessageListener) {
-				if (session != null) {
-					((SessionAwareMessageListener<Message>) delegate).onMessage(message, session);
-					return;
-				}
-				else if (!(delegate instanceof MessageListener)) {
-					throw new javax.jms.IllegalStateException("MessageListenerAdapter cannot handle a " +
-							"SessionAwareMessageListener delegate if it hasn't been invoked with a Session itself");
-				}
+				Assert.state(session != null, "Session is required for SessionAwareMessageListener");
+				((SessionAwareMessageListener<Message>) delegate).onMessage(message, session);
+				return;
 			}
 			if (delegate instanceof MessageListener) {
 				((MessageListener) delegate).onMessage(message);
@@ -220,11 +216,6 @@ public class MessageListenerAdapter extends AbstractAdaptableMessageListener imp
 		// Regular case: find a handler method reflectively.
 		Object convertedMessage = extractMessage(message);
 		String methodName = getListenerMethodName(message, convertedMessage);
-		if (methodName == null) {
-			throw new javax.jms.IllegalStateException("No default listener method specified: " +
-					"Either specify a non-null value for the 'defaultListenerMethod' property or " +
-					"override the 'getListenerMethodName' method.");
-		}
 
 		// Invoke the handler method with appropriate arguments.
 		Object[] listenerArguments = buildListenerArguments(convertedMessage);
@@ -292,6 +283,7 @@ public class MessageListenerAdapter extends AbstractAdaptableMessageListener imp
 	 * @see #getListenerMethodName
 	 * @see #buildListenerArguments
 	 */
+	@Nullable
 	protected Object invokeListenerMethod(String methodName, Object[] arguments) throws JMSException {
 		try {
 			MethodInvoker methodInvoker = new MethodInvoker();

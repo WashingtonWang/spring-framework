@@ -23,18 +23,23 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.Conventions;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.result.view.ViewResolver;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -52,7 +57,9 @@ class DefaultRenderingResponseBuilder implements RenderingResponse.Builder {
 
 	private final HttpHeaders headers = new HttpHeaders();
 
-	private final Map<String, Object> model = new LinkedHashMap<String, Object>();
+	private final MultiValueMap<String, ResponseCookie> cookies = new LinkedMultiValueMap<>();
+
+	private final Map<String, Object> model = new LinkedHashMap<>();
 
 
 	public DefaultRenderingResponseBuilder(String name) {
@@ -64,6 +71,20 @@ class DefaultRenderingResponseBuilder implements RenderingResponse.Builder {
 	public RenderingResponse.Builder status(HttpStatus status) {
 		Assert.notNull(status, "'status' must not be null");
 		this.status = status;
+		return this;
+	}
+
+	@Override
+	public RenderingResponse.Builder cookie(ResponseCookie cookie) {
+		Assert.notNull(cookie, "'cookie' must not be null");
+		this.cookies.add(cookie.getName(), cookie);
+		return this;
+	}
+
+	@Override
+	public RenderingResponse.Builder cookies(Consumer<MultiValueMap<String, ResponseCookie>> cookiesConsumer) {
+		Assert.notNull(cookiesConsumer, "'cookiesConsumer' must not be null");
+		cookiesConsumer.accept(this.cookies);
 		return this;
 	}
 
@@ -85,25 +106,19 @@ class DefaultRenderingResponseBuilder implements RenderingResponse.Builder {
 
 	@Override
 	public RenderingResponse.Builder modelAttributes(Object... attributes) {
-		if (attributes != null) {
-			modelAttributes(Arrays.asList(attributes));
-		}
+		modelAttributes(Arrays.asList(attributes));
 		return this;
 	}
 
 	@Override
 	public RenderingResponse.Builder modelAttributes(Collection<?> attributes) {
-		if (attributes != null) {
-			attributes.forEach(this::modelAttribute);
-		}
+		attributes.forEach(this::modelAttribute);
 		return this;
 	}
 
 	@Override
 	public RenderingResponse.Builder modelAttributes(Map<String, ?> attributes) {
-		if (attributes != null) {
-			this.model.putAll(attributes);
-		}
+		this.model.putAll(attributes);
 		return this;
 	}
 
@@ -117,15 +132,14 @@ class DefaultRenderingResponseBuilder implements RenderingResponse.Builder {
 
 	@Override
 	public RenderingResponse.Builder headers(HttpHeaders headers) {
-		if (headers != null) {
-			this.headers.putAll(headers);
-		}
+		this.headers.putAll(headers);
 		return this;
 	}
 
 	@Override
 	public Mono<RenderingResponse> build() {
-		return Mono.just(new DefaultRenderingResponse(this.status, this.headers, this.name, this.model));
+		return Mono.just(new DefaultRenderingResponse(this.status, this.headers, this.cookies,
+				this.name, this.model));
 	}
 
 
@@ -137,9 +151,10 @@ class DefaultRenderingResponseBuilder implements RenderingResponse.Builder {
 
 		private final Map<String, Object> model;
 
-		public DefaultRenderingResponse(HttpStatus statusCode, HttpHeaders headers, String name,
-				Map<String, Object> model) {
-			super(statusCode, headers);
+		public DefaultRenderingResponse(HttpStatus statusCode, HttpHeaders headers,
+				MultiValueMap<String, ResponseCookie> cookies,
+				String name, Map<String, Object> model) {
+			super(statusCode, headers, cookies);
 			this.name = name;
 			this.model = unmodifiableCopy(model);
 		}
@@ -163,8 +178,8 @@ class DefaultRenderingResponseBuilder implements RenderingResponse.Builder {
 		public Mono<Void> writeTo(ServerWebExchange exchange, Context context) {
 			ServerHttpResponse response = exchange.getResponse();
 			writeStatusAndHeaders(response);
-			MediaType contentType = exchange.getResponse().getHeaders().getContentType();
-			Locale locale = resolveLocale(exchange);
+			MediaType responseContentType = exchange.getResponse().getHeaders().getContentType();
+			Locale locale = LocaleContextHolder.getLocale(exchange.getLocaleContext());
 			Stream<ViewResolver> viewResolverStream = context.viewResolvers().stream();
 
 			return Flux.fromStream(viewResolverStream)
@@ -172,14 +187,13 @@ class DefaultRenderingResponseBuilder implements RenderingResponse.Builder {
 					.next()
 					.switchIfEmpty(Mono.error(new IllegalArgumentException("Could not resolve view with name '" +
 							name() +"'")))
-					.flatMap(view -> view.render(model(), contentType, exchange));
+					.flatMap(view -> {
+						List<MediaType> mediaTypes = view.getSupportedMediaTypes();
+						MediaType contentType = (responseContentType == null && !mediaTypes.isEmpty() ? mediaTypes.get(0) : responseContentType);
+						return view.render(model(), contentType, exchange);
+					});
 		}
 
-		private Locale resolveLocale(ServerWebExchange exchange) {
-			List<Locale> locales = exchange.getRequest().getHeaders().getAcceptLanguageAsLocales();
-			return locales.isEmpty() ? Locale.getDefault() : locales.get(0);
-
-		}
 	}
 
 }

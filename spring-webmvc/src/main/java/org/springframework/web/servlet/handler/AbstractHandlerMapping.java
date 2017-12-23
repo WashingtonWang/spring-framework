@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -70,6 +69,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 
 	private int order = Integer.MAX_VALUE;  // default: same as non-Ordered
 
+	@Nullable
 	private Object defaultHandler;
 
 	private UrlPathHelper urlPathHelper = new UrlPathHelper();
@@ -104,7 +104,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	 * This handler will be returned if no specific mapping was found.
 	 * <p>Default is {@code null}, indicating no default handler.
 	 */
-	public void setDefaultHandler(Object defaultHandler) {
+	public void setDefaultHandler(@Nullable Object defaultHandler) {
 		this.defaultHandler = defaultHandler;
 	}
 
@@ -118,11 +118,8 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	}
 
 	/**
-	 * Set if URL lookup should always use the full path within the current servlet
-	 * context. Else, the path within the current servlet mapping is used if applicable
-	 * (that is, in the case of a ".../*" servlet mapping in web.xml).
-	 * <p>Default is "false".
-	 * @see org.springframework.web.util.UrlPathHelper#setAlwaysUseFullPath
+	 * Shortcut to same property on underlying {@link #setUrlPathHelper UrlPathHelper}.
+	 * @see org.springframework.web.util.UrlPathHelper#setAlwaysUseFullPath(boolean)
 	 */
 	public void setAlwaysUseFullPath(boolean alwaysUseFullPath) {
 		this.urlPathHelper.setAlwaysUseFullPath(alwaysUseFullPath);
@@ -130,11 +127,8 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	}
 
 	/**
-	 * Set if context path and request URI should be URL-decoded. Both are returned
-	 * <i>undecoded</i> by the Servlet API, in contrast to the servlet path.
-	 * <p>Uses either the request encoding or the default encoding according
-	 * to the Servlet spec (ISO-8859-1).
-	 * @see org.springframework.web.util.UrlPathHelper#setUrlDecode
+	 * Shortcut to same property on underlying {@link #setUrlPathHelper UrlPathHelper}.
+	 * @see org.springframework.web.util.UrlPathHelper#setUrlDecode(boolean)
 	 */
 	public void setUrlDecode(boolean urlDecode) {
 		this.urlPathHelper.setUrlDecode(urlDecode);
@@ -142,8 +136,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	}
 
 	/**
-	 * Set if ";" (semicolon) content should be stripped from the request URI.
-	 * <p>The default value is {@code true}.
+	 * Shortcut to same property on underlying {@link #setUrlPathHelper UrlPathHelper}.
 	 * @see org.springframework.web.util.UrlPathHelper#setRemoveSemicolonContent(boolean)
 	 */
 	public void setRemoveSemicolonContent(boolean removeSemicolonContent) {
@@ -194,12 +187,12 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	 * <p>Supported interceptor types are HandlerInterceptor, WebRequestInterceptor, and MappedInterceptor.
 	 * Mapped interceptors apply only to request URLs that match its path patterns.
 	 * Mapped interceptor beans are also detected by type during initialization.
-	 * @param interceptors array of handler interceptors, or {@code null} if none
+	 * @param interceptors array of handler interceptors
 	 * @see #adaptInterceptor
 	 * @see org.springframework.web.servlet.HandlerInterceptor
 	 * @see org.springframework.web.context.request.WebRequestInterceptor
 	 */
-	public void setInterceptors(@Nullable Object... interceptors) {
+	public void setInterceptors(Object... interceptors) {
 		this.interceptors.addAll(Arrays.asList(interceptors));
 	}
 
@@ -273,7 +266,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	protected void detectMappedInterceptors(List<HandlerInterceptor> mappedInterceptors) {
 		mappedInterceptors.addAll(
 				BeanFactoryUtils.beansOfTypeIncludingAncestors(
-						getApplicationContext(), MappedInterceptor.class, true, false).values());
+						obtainApplicationContext(), MappedInterceptor.class, true, false).values());
 	}
 
 	/**
@@ -353,6 +346,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	 * @see #getHandlerInternal
 	 */
 	@Override
+	@Nullable
 	public final HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
 		Object handler = getHandlerInternal(request);
 		if (handler == null) {
@@ -364,7 +358,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 		// Bean name or resolved handler?
 		if (handler instanceof String) {
 			String handlerName = (String) handler;
-			handler = getApplicationContext().getBean(handlerName);
+			handler = obtainApplicationContext().getBean(handlerName);
 		}
 
 		HandlerExecutionChain executionChain = getHandlerExecutionChain(handler, request);
@@ -439,16 +433,17 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	 * Retrieve the CORS configuration for the given handler.
 	 * @param handler the handler to check (never {@code null}).
 	 * @param request the current request.
-	 * @return the CORS configuration for the handler or {@code null}.
+	 * @return the CORS configuration for the handler, or {@code null} if none
 	 * @since 4.2
 	 */
 	@Nullable
 	protected CorsConfiguration getCorsConfiguration(Object handler, HttpServletRequest request) {
+		Object resolvedHandler = handler;
 		if (handler instanceof HandlerExecutionChain) {
-			handler = ((HandlerExecutionChain) handler).getHandler();
+			resolvedHandler = ((HandlerExecutionChain) handler).getHandler();
 		}
-		if (handler instanceof CorsConfigurationSource) {
-			return ((CorsConfigurationSource) handler).getCorsConfiguration(request);
+		if (resolvedHandler instanceof CorsConfigurationSource) {
+			return ((CorsConfigurationSource) resolvedHandler).getCorsConfiguration(request);
 		}
 		return null;
 	}
@@ -462,7 +457,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	 * HandlerInterceptor that makes CORS-related checks and adds CORS headers.
 	 * @param request the current request
 	 * @param chain the handler chain
-	 * @param config the applicable CORS configuration, possibly {@code null}
+	 * @param config the applicable CORS configuration (possibly {@code null})
 	 * @since 4.2
 	 */
 	protected HandlerExecutionChain getCorsHandlerExecutionChain(HttpServletRequest request,
@@ -481,9 +476,10 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 
 	private class PreFlightHandler implements HttpRequestHandler, CorsConfigurationSource {
 
+		@Nullable
 		private final CorsConfiguration config;
 
-		public PreFlightHandler(CorsConfiguration config) {
+		public PreFlightHandler(@Nullable CorsConfiguration config) {
 			this.config = config;
 		}
 
@@ -493,6 +489,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 		}
 
 		@Override
+		@Nullable
 		public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
 			return this.config;
 		}
@@ -501,9 +498,10 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 
 	private class CorsInterceptor extends HandlerInterceptorAdapter implements CorsConfigurationSource {
 
+		@Nullable
 		private final CorsConfiguration config;
 
-		public CorsInterceptor(CorsConfiguration config) {
+		public CorsInterceptor(@Nullable CorsConfiguration config) {
 			this.config = config;
 		}
 
@@ -515,6 +513,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 		}
 
 		@Override
+		@Nullable
 		public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
 			return this.config;
 		}

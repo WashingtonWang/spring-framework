@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.StandardAnnotationMetadata;
 import org.springframework.core.type.classreading.MetadataReader;
-import org.springframework.lang.NonNullApi;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -48,13 +47,13 @@ import org.springframework.util.ClassUtils;
  * @see BeanMethod
  * @see ConfigurationClassParser
  */
-@NonNullApi
 final class ConfigurationClass {
 
 	private final AnnotationMetadata metadata;
 
 	private final Resource resource;
 
+	@Nullable
 	private String beanName;
 
 	private final Set<ConfigurationClass> importedBy = new LinkedHashSet<>(1);
@@ -77,7 +76,7 @@ final class ConfigurationClass {
 	 * @see ConfigurationClass#ConfigurationClass(Class, ConfigurationClass)
 	 */
 	public ConfigurationClass(MetadataReader metadataReader, String beanName) {
-		Assert.hasText(beanName, "Bean name must not be null");
+		Assert.notNull(beanName, "Bean name must not be null");
 		this.metadata = metadataReader.getAnnotationMetadata();
 		this.resource = metadataReader.getResource();
 		this.beanName = beanName;
@@ -104,7 +103,7 @@ final class ConfigurationClass {
 	 * @see ConfigurationClass#ConfigurationClass(Class, ConfigurationClass)
 	 */
 	public ConfigurationClass(Class<?> clazz, String beanName) {
-		Assert.hasText(beanName, "Bean name must not be null");
+		Assert.notNull(beanName, "Bean name must not be null");
 		this.metadata = new StandardAnnotationMetadata(clazz, true);
 		this.resource = new DescriptiveResource(clazz.getName());
 		this.beanName = beanName;
@@ -115,7 +114,7 @@ final class ConfigurationClass {
 	 * using the {@link Import} annotation or automatically processed as a nested
 	 * configuration class (if imported is {@code true}).
 	 * @param clazz the underlying {@link Class} to represent
-	 * @param importedBy the configuration class importing this one or {@code null}
+	 * @param importedBy the configuration class importing this one (or {@code null})
 	 * @since 3.1.1
 	 */
 	public ConfigurationClass(Class<?> clazz, @Nullable ConfigurationClass importedBy) {
@@ -131,7 +130,7 @@ final class ConfigurationClass {
 	 * @see ConfigurationClass#ConfigurationClass(Class, ConfigurationClass)
 	 */
 	public ConfigurationClass(AnnotationMetadata metadata, String beanName) {
-		Assert.hasText(beanName, "Bean name must not be null");
+		Assert.notNull(beanName, "Bean name must not be null");
 		this.metadata = metadata;
 		this.resource = new DescriptiveResource(metadata.getClassName());
 		this.beanName = beanName;
@@ -154,6 +153,7 @@ final class ConfigurationClass {
 		this.beanName = beanName;
 	}
 
+	@Nullable
 	public String getBeanName() {
 		return this.beanName;
 	}

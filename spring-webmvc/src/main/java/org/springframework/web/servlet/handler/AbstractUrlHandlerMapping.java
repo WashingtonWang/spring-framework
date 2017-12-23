@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -53,6 +54,7 @@ import org.springframework.web.servlet.HandlerExecutionChain;
  */
 public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping implements MatchableHandlerMapping {
 
+	@Nullable
 	private Object rootHandler;
 
 	private boolean useTrailingSlashMatch = false;
@@ -67,7 +69,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 	 * the handler to be registered for the root path ("/").
 	 * <p>Default is {@code null}, indicating no root handler.
 	 */
-	public void setRootHandler(Object rootHandler) {
+	public void setRootHandler(@Nullable Object rootHandler) {
 		this.rootHandler = rootHandler;
 	}
 
@@ -134,7 +136,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 				// Bean name or resolved handler?
 				if (rawHandler instanceof String) {
 					String handlerName = (String) rawHandler;
-					rawHandler = getApplicationContext().getBean(handlerName);
+					rawHandler = obtainApplicationContext().getBean(handlerName);
 				}
 				validateHandler(rawHandler, request);
 				handler = buildPathExposingHandler(rawHandler, lookupPath, lookupPath, null);
@@ -170,7 +172,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 			// Bean name or resolved handler?
 			if (handler instanceof String) {
 				String handlerName = (String) handler;
-				handler = getApplicationContext().getBean(handlerName);
+				handler = obtainApplicationContext().getBean(handlerName);
 			}
 			validateHandler(handler, request);
 			return buildPathExposingHandler(handler, urlPath, urlPath, null);
@@ -212,7 +214,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 			// Bean name or resolved handler?
 			if (handler instanceof String) {
 				String handlerName = (String) handler;
-				handler = getApplicationContext().getBean(handlerName);
+				handler = obtainApplicationContext().getBean(handlerName);
 			}
 			validateHandler(handler, request);
 			String pathWithinMapping = getPathMatcher().extractPathWithinPattern(bestMatch, urlPath);
@@ -276,7 +278,9 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 	 * @param request the request to expose the path to
 	 * @see #PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE
 	 */
-	protected void exposePathWithinMapping(String bestMatchingPattern, String pathWithinMapping, HttpServletRequest request) {
+	protected void exposePathWithinMapping(String bestMatchingPattern, String pathWithinMapping,
+			HttpServletRequest request) {
+
 		request.setAttribute(BEST_MATCHING_PATTERN_ATTRIBUTE, bestMatchingPattern);
 		request.setAttribute(PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE, pathWithinMapping);
 	}
@@ -292,6 +296,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 	}
 
 	@Override
+	@Nullable
 	public RequestMatchResult match(HttpServletRequest request, String pattern) {
 		String lookupPath = getUrlPathHelper().getLookupPathForRequest(request);
 		if (getPathMatcher().match(pattern, lookupPath)) {
@@ -335,8 +340,9 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 		// Eagerly resolve handler if referencing singleton via name.
 		if (!this.lazyInitHandlers && handler instanceof String) {
 			String handlerName = (String) handler;
-			if (getApplicationContext().isSingleton(handlerName)) {
-				resolvedHandler = getApplicationContext().getBean(handlerName);
+			ApplicationContext applicationContext = obtainApplicationContext();
+			if (applicationContext.isSingleton(handlerName)) {
+				resolvedHandler = applicationContext.getBean(handlerName);
 			}
 		}
 

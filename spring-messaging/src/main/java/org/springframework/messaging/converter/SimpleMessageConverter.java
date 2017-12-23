@@ -36,19 +36,14 @@ import org.springframework.util.ClassUtils;
 public class SimpleMessageConverter implements MessageConverter {
 
 	@Override
+	@Nullable
 	public Object fromMessage(Message<?> message, Class<?> targetClass) {
 		Object payload = message.getPayload();
-		if (targetClass == null) {
-			return payload;
-		}
 		return (ClassUtils.isAssignableValue(targetClass, payload) ? payload : null);
 	}
 
 	@Override
 	public Message<?> toMessage(Object payload, @Nullable MessageHeaders headers) {
-		if (payload == null) {
-			return null;
-		}
 		if (headers != null) {
 			MessageHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(headers, MessageHeaderAccessor.class);
 			if (accessor != null && accessor.isMutable()) {

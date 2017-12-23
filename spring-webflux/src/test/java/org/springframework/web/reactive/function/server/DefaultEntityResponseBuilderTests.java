@@ -30,7 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import org.springframework.core.ResolvableType;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.codec.CharSequenceEncoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -39,11 +39,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.mock.http.server.reactive.test.MockServerHttpRequest;
-import org.springframework.mock.http.server.reactive.test.MockServerWebExchange;
+import org.springframework.mock.web.test.server.MockServerWebExchange;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.result.view.ViewResolver;
 
@@ -70,10 +73,10 @@ public class DefaultEntityResponseBuilderTests {
 	}
 
 	@Test
-	public void fromPublisherResolvableType() throws Exception {
+	public void fromPublisher() throws Exception {
 		Flux<String> body = Flux.just("foo", "bar");
-		ResolvableType type = ResolvableType.forClass(String.class);
-		EntityResponse<Flux<String>> response = EntityResponse.fromPublisher(body, type).build().block();
+		ParameterizedTypeReference<String> typeReference = new ParameterizedTypeReference<String>() {};
+		EntityResponse<Flux<String>> response = EntityResponse.fromPublisher(body, typeReference).build().block();
 		assertSame(body, response.entity());
 	}
 
@@ -176,6 +179,18 @@ public class DefaultEntityResponseBuilderTests {
 	}
 
 	@Test
+	public void cookies() throws Exception {
+		MultiValueMap<String, ResponseCookie> newCookies = new LinkedMultiValueMap<>();
+		newCookies.add("name", ResponseCookie.from("name", "value").build());
+		Mono<EntityResponse<String>> result =
+				EntityResponse.fromObject("foo").cookies(cookies -> cookies.addAll(newCookies)).build();
+		StepVerifier.create(result)
+				.expectNextMatches(response -> newCookies.equals(response.cookies()))
+				.expectComplete()
+				.verify();
+	}
+
+	@Test
 	public void bodyInserter() throws Exception {
 		String body = "foo";
 		Publisher<String> publisher = Mono.just(body);
@@ -190,23 +205,19 @@ public class DefaultEntityResponseBuilderTests {
 
 		Mono<EntityResponse<Publisher<String>>> result = EntityResponse.fromPublisher(publisher, String.class).build();
 
-		MockServerWebExchange exchange = MockServerHttpRequest.get("http://localhost").toExchange();
+		MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("http://localhost"));
 
 		ServerResponse.Context context = new ServerResponse.Context() {
 			@Override
 			public List<HttpMessageWriter<?>> messageWriters() {
-				return Collections.<HttpMessageWriter<?>>singletonList(new EncoderHttpMessageWriter<>(CharSequenceEncoder.allMimeTypes()));
+				return Collections.singletonList(new EncoderHttpMessageWriter<>(CharSequenceEncoder.allMimeTypes()));
 			}
 
 			@Override
 			public List<ViewResolver> viewResolvers() {
-				return Collections.<ViewResolver>emptyList();
+				return Collections.emptyList();
 			}
 		};
-		HandlerStrategies strategies = HandlerStrategies.empty()
-				.customCodecs(configurer -> configurer.writer(new EncoderHttpMessageWriter<>(CharSequenceEncoder.allMimeTypes())))
-				.build();
-
 		StepVerifier.create(result)
 				.consumeNextWith(response -> {
 					StepVerifier.create(response.entity())

@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.Map;
 import javax.servlet.AsyncContext;
@@ -53,7 +54,7 @@ import org.springframework.util.StringUtils;
  * @author Rossen Stoyanchev
  * @since 5.0
  */
-public class ServletServerHttpRequest extends AbstractServerHttpRequest {
+class ServletServerHttpRequest extends AbstractServerHttpRequest {
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
@@ -70,9 +71,9 @@ public class ServletServerHttpRequest extends AbstractServerHttpRequest {
 
 
 	public ServletServerHttpRequest(HttpServletRequest request, AsyncContext asyncContext,
-			DataBufferFactory bufferFactory, int bufferSize) throws IOException {
+			String servletPath, DataBufferFactory bufferFactory, int bufferSize) throws IOException {
 
-		super(initUri(request), initHeaders(request));
+		super(initUri(request), request.getContextPath() + servletPath, initHeaders(request));
 
 		Assert.notNull(bufferFactory, "'bufferFactory' must not be null");
 		Assert.isTrue(bufferSize > 0, "'bufferSize' must be higher than 0");
@@ -88,7 +89,6 @@ public class ServletServerHttpRequest extends AbstractServerHttpRequest {
 		this.bodyPublisher = new RequestBodyPublisher(inputStream);
 		this.bodyPublisher.registerReadListener();
 	}
-
 
 	private static URI initUri(HttpServletRequest request) {
 		Assert.notNull(request, "'request' must not be null");
@@ -145,18 +145,9 @@ public class ServletServerHttpRequest extends AbstractServerHttpRequest {
 	}
 
 
-	public HttpServletRequest getServletRequest() {
-		return this.request;
-	}
-
 	@Override
 	public String getMethodValue() {
-		return getServletRequest().getMethod();
-	}
-
-	@Override
-	public String getContextPath() {
-		return getServletRequest().getContextPath();
+		return this.request.getMethod();
 	}
 
 	@Override
@@ -181,6 +172,16 @@ public class ServletServerHttpRequest extends AbstractServerHttpRequest {
 		return new InetSocketAddress(this.request.getRemoteHost(), this.request.getRemotePort());
 	}
 
+	@Nullable
+	protected SslInfo initSslInfo() {
+		if (!this.request.isSecure()) {
+			return null;
+		}
+		return new DefaultSslInfo(
+				(String) request.getAttribute("javax.servlet.request.ssl_session_id"),
+				(X509Certificate[]) request.getAttribute("java.security.cert.X509Certificate"));
+	}
+
 	@Override
 	public Flux<DataBuffer> getBody() {
 		return Flux.from(this.bodyPublisher);
@@ -194,7 +195,7 @@ public class ServletServerHttpRequest extends AbstractServerHttpRequest {
 	protected DataBuffer readFromInputStream() throws IOException {
 		int read = this.request.getInputStream().read(this.buffer);
 		if (logger.isTraceEnabled()) {
-			logger.trace("read:" + read);
+			logger.trace("InputStream read returned " + read + (read != -1 ? " bytes" : ""));
 		}
 
 		if (read > 0) {
@@ -204,6 +205,12 @@ public class ServletServerHttpRequest extends AbstractServerHttpRequest {
 		}
 
 		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T> T getNativeRequest() {
+		return (T) this.request;
 	}
 
 
@@ -251,11 +258,17 @@ public class ServletServerHttpRequest extends AbstractServerHttpRequest {
 		}
 
 		@Override
+		@Nullable
 		protected DataBuffer read() throws IOException {
 			if (this.inputStream.isReady()) {
 				return readFromInputStream();
 			}
 			return null;
+		}
+
+		@Override
+		protected void readingPaused() {
+			// no-op
 		}
 
 

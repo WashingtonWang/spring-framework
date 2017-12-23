@@ -23,19 +23,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.codec.json.Jackson2CodecSupport;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.Assert;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.result.view.ViewResolver;
@@ -65,6 +69,11 @@ public interface ServerResponse {
 	HttpHeaders headers();
 
 	/**
+	 * Return the cookies of this response.
+	 */
+	MultiValueMap<String, ResponseCookie> cookies();
+
+	/**
 	 * Write this response to the given web exchange.
 	 * @param exchange the web exchange to write to
 	 * @param context the context to use when writing
@@ -83,7 +92,7 @@ public interface ServerResponse {
 	static BodyBuilder from(ServerResponse other) {
 		Assert.notNull(other, "Other ServerResponse must not be null");
 		DefaultServerResponseBuilder builder = new DefaultServerResponseBuilder(other.statusCode());
-		return builder.headers(other.headers());
+		return builder.headers(headers -> headers.addAll(other.headers()));
 	}
 
 	/**
@@ -207,12 +216,33 @@ public interface ServerResponse {
 		B header(String headerName, String... headerValues);
 
 		/**
-		 * Copy the given headers into the entity's headers map.
-		 * @param headers the existing HttpHeaders to copy from
+		 * Manipulate this response's headers with the given consumer. The
+		 * headers provided to the consumer are "live", so that the consumer can be used to
+		 * {@linkplain HttpHeaders#set(String, String) overwrite} existing header values,
+		 * {@linkplain HttpHeaders#remove(Object) remove} values, or use any of the other
+		 * {@link HttpHeaders} methods.
+		 * @param headersConsumer a function that consumes the {@code HttpHeaders}
 		 * @return this builder
-		 * @see HttpHeaders#add(String, String)
 		 */
-		B headers(HttpHeaders headers);
+		B headers(Consumer<HttpHeaders> headersConsumer);
+
+		/**
+		 * Add the given cookie to the response.
+		 * @param cookie the cookie to add
+		 * @return this builder
+		 */
+		B cookie(ResponseCookie cookie);
+
+		/**
+		 * Manipulate this response's cookies with the given consumer. The
+		 * cookies provided to the consumer are "live", so that the consumer can be used to
+		 * {@linkplain MultiValueMap#set(Object, Object) overwrite} existing cookies,
+		 * {@linkplain MultiValueMap#remove(Object) remove} cookies, or use any of the other
+		 * {@link MultiValueMap} methods.
+		 * @param cookiesConsumer a function that consumes the cookies
+		 * @return this builder
+		 */
+		B cookies(Consumer<MultiValueMap<String, ResponseCookie>> cookiesConsumer);
 
 		/**
 		 * Set the set of allowed {@link HttpMethod HTTP methods}, as specified
@@ -349,6 +379,19 @@ public interface ServerResponse {
 		<T, P extends Publisher<T>> Mono<ServerResponse> body(P publisher, Class<T> elementClass);
 
 		/**
+		 * Set the body of the response to the given asynchronous {@code Publisher} and return it.
+		 * This convenience method combines {@link #body(BodyInserter)} and
+		 * {@link BodyInserters#fromPublisher(Publisher, Class)}.
+		 * @param publisher the {@code Publisher} to write to the response
+		 * @param typeReference a type reference describing the elements contained in the publisher
+		 * @param <T> the type of the elements contained in the publisher
+		 * @param <P> the type of the {@code Publisher}
+		 * @return the built response
+		 */
+		<T, P extends Publisher<T>> Mono<ServerResponse> body(P publisher,
+				ParameterizedTypeReference<T> typeReference);
+
+		/**
 		 * Set the body of the response to the given synchronous {@code Object} and return it.
 		 * This convenience method combines {@link #body(BodyInserter)} and
 		 * {@link BodyInserters#fromObject(Object)}.
@@ -388,6 +431,7 @@ public interface ServerResponse {
 		Mono<ServerResponse> render(String name, Map<String, ?> model);
 	}
 
+
 	/**
 	 * Defines the context used during the {@link #writeTo(ServerWebExchange, Context)}.
 	 */
@@ -395,13 +439,13 @@ public interface ServerResponse {
 
 		/**
 		 * Return the {@link HttpMessageWriter}s to be used for response body conversion.
-		 * @return the stream of message writers
+		 * @return the list of message writers
 		 */
 		List<HttpMessageWriter<?>> messageWriters();
 
 		/**
 		 * Return the  {@link ViewResolver}s to be used for view name resolution.
-		 * @return the stream of view resolvers
+		 * @return the list of view resolvers
 		 */
 		List<ViewResolver> viewResolvers();
 	}

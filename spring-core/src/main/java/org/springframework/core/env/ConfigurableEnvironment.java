@@ -18,8 +18,6 @@ package org.springframework.core.env;
 
 import java.util.Map;
 
-import org.springframework.lang.NonNullApi;
-
 /**
  * Configuration interface to be implemented by most if not all {@link Environment} types.
  * Provides facilities for setting active and default profiles and manipulating underlying
@@ -71,7 +69,6 @@ import org.springframework.lang.NonNullApi;
  * @see StandardEnvironment
  * @see org.springframework.context.ConfigurableApplicationContext#getEnvironment
  */
-@NonNullApi
 public interface ConfigurableEnvironment extends Environment, ConfigurablePropertyResolver {
 
 	/**
@@ -110,9 +107,9 @@ public interface ConfigurableEnvironment extends Environment, ConfigurableProper
 	 * be searched when resolving properties against this {@code Environment} object.
 	 * The various {@link MutablePropertySources} methods such as
 	 * {@link MutablePropertySources#addFirst addFirst},
-	 * {@link MutablePropertySources#addFirst addLast},
-	 * {@link MutablePropertySources#addFirst addBefore} and
-	 * {@link MutablePropertySources#addFirst addAfter} allow for fine-grained control
+	 * {@link MutablePropertySources#addLast addLast},
+	 * {@link MutablePropertySources#addBefore addBefore} and
+	 * {@link MutablePropertySources#addAfter addAfter} allow for fine-grained control
 	 * over property source ordering. This is useful, for example, in ensuring that
 	 * certain user-defined property sources have search precedence over default property
 	 * sources such as the set of system properties or the set of system environment

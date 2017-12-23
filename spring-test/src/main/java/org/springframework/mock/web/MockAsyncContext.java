@@ -44,10 +44,12 @@ public class MockAsyncContext implements AsyncContext {
 
 	private final HttpServletRequest request;
 
+	@Nullable
 	private final HttpServletResponse response;
 
 	private final List<AsyncListener> listeners = new ArrayList<>();
 
+	@Nullable
 	private String dispatchedPath;
 
 	private long timeout = 10 * 1000L;	// 10 seconds is Tomcat's default
@@ -55,7 +57,7 @@ public class MockAsyncContext implements AsyncContext {
 	private final List<Runnable> dispatchHandlers = new ArrayList<>();
 
 
-	public MockAsyncContext(ServletRequest request, ServletResponse response) {
+	public MockAsyncContext(ServletRequest request, @Nullable ServletResponse response) {
 		this.request = (HttpServletRequest) request;
 		this.response = (HttpServletResponse) response;
 	}
@@ -72,6 +74,7 @@ public class MockAsyncContext implements AsyncContext {
 	}
 
 	@Override
+	@Nullable
 	public ServletResponse getResponse() {
 		return this.response;
 	}
@@ -99,6 +102,7 @@ public class MockAsyncContext implements AsyncContext {
 		}
 	}
 
+	@Nullable
 	public String getDispatchedPath() {
 		return this.dispatchedPath;
 	}

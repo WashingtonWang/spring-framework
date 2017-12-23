@@ -32,20 +32,26 @@ import java.util.function.Function;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpRange;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.HttpMessageReader;
+import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.Assert;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyExtractor;
 import org.springframework.web.reactive.function.BodyExtractors;
 import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 import org.springframework.web.server.WebSession;
+import org.springframework.web.util.UriBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * {@code ServerRequest} implementation based on a {@link ServerWebExchange}.
@@ -79,10 +85,9 @@ class DefaultServerRequest implements ServerRequest {
 	}
 
 
-
 	@Override
-	public HttpMethod method() {
-		return request().getMethod();
+	public String methodName() {
+		return request().getMethodValue();
 	}
 
 	@Override
@@ -91,8 +96,23 @@ class DefaultServerRequest implements ServerRequest {
 	}
 
 	@Override
+	public UriBuilder uriBuilder() {
+		return UriComponentsBuilder.fromHttpRequest(new ServerRequestAdapter());
+	}
+
+	@Override
+	public PathContainer pathContainer() {
+		return request().getPath();
+	}
+
+	@Override
 	public Headers headers() {
 		return this.headers;
+	}
+
+	@Override
+	public MultiValueMap<String, HttpCookie> cookies() {
+		return request().getCookies();
 	}
 
 	@Override
@@ -127,14 +147,21 @@ class DefaultServerRequest implements ServerRequest {
 	}
 
 	@Override
+	public <T> Mono<T> bodyToMono(ParameterizedTypeReference<T> typeReference) {
+		Mono<T> mono = body(BodyExtractors.toMono(typeReference));
+		return mono.onErrorMap(UnsupportedMediaTypeException.class, ERROR_MAPPER);
+	}
+
+	@Override
 	public <T> Flux<T> bodyToFlux(Class<? extends T> elementClass) {
 		Flux<T> flux = body(BodyExtractors.toFlux(elementClass));
 		return flux.onErrorMap(UnsupportedMediaTypeException.class, ERROR_MAPPER);
 	}
 
 	@Override
-	public <T> Optional<T> attribute(String name) {
-		return this.exchange.getAttribute(name);
+	public <T> Flux<T> bodyToFlux(ParameterizedTypeReference<T> typeReference) {
+		Flux<T> flux = body(BodyExtractors.toFlux(typeReference));
+		return flux.onErrorMap(UnsupportedMediaTypeException.class, ERROR_MAPPER);
 	}
 
 	@Override
@@ -143,15 +170,14 @@ class DefaultServerRequest implements ServerRequest {
 	}
 
 	@Override
-	public List<String> queryParams(String name) {
-		List<String> queryParams = request().getQueryParams().get(name);
-		return queryParams != null ? queryParams : Collections.emptyList();
+	public MultiValueMap<String, String> queryParams() {
+		return request().getQueryParams();
 	}
 
 	@Override
 	public Map<String, String> pathVariables() {
-		return this.exchange.<Map<String, String>>getAttribute(RouterFunctions.URI_TEMPLATE_VARIABLES_ATTRIBUTE).
-				orElseGet(Collections::emptyMap);
+		return this.exchange.getAttributeOrDefault(
+				RouterFunctions.URI_TEMPLATE_VARIABLES_ATTRIBUTE, Collections.emptyMap());
 	}
 
 	@Override
@@ -236,5 +262,24 @@ class DefaultServerRequest implements ServerRequest {
 			return delegate().toString();
 		}
 	}
+
+	private final class ServerRequestAdapter implements HttpRequest {
+
+		@Override
+		public String getMethodValue() {
+			return methodName();
+		}
+
+		@Override
+		public URI getURI() {
+			return uri();
+		}
+
+		@Override
+		public HttpHeaders getHeaders() {
+			return request().getHeaders();
+		}
+	}
+
 
 }

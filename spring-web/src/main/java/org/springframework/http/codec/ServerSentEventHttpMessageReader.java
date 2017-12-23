@@ -29,6 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
+import org.springframework.core.codec.CodecException;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.StringDecoder;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -39,12 +40,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ReactiveHttpInputMessage;
 import org.springframework.lang.Nullable;
 
-import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.*;
 
 /**
  * Reader that supports a stream of {@link ServerSentEvent}s and also plain
- * {@link Object}s which is the same as an {@link ServerSentEvent} with data
- * only.
+ * {@link Object}s which is the same as an {@link ServerSentEvent} with data only.
  *
  * @author Sebastien Deleuze
  * @author Rossen Stoyanchev
@@ -59,6 +59,7 @@ public class ServerSentEventHttpMessageReader implements HttpMessageReader<Objec
 	private static final StringDecoder stringDecoder = StringDecoder.textPlainOnly(false);
 
 
+	@Nullable
 	private final Decoder<?> decoder;
 
 
@@ -71,10 +72,10 @@ public class ServerSentEventHttpMessageReader implements HttpMessageReader<Objec
 	}
 
 	/**
-	 * Constructor with JSON {@code Decoder} for decoding to Objects. Support
-	 * for decoding to {@code String} event data is built-in.
+	 * Constructor with JSON {@code Decoder} for decoding to Objects.
+	 * Support for decoding to {@code String} event data is built-in.
 	 */
-	public ServerSentEventHttpMessageReader(Decoder<?> decoder) {
+	public ServerSentEventHttpMessageReader(@Nullable Decoder<?> decoder) {
 		this.decoder = decoder;
 	}
 
@@ -82,6 +83,7 @@ public class ServerSentEventHttpMessageReader implements HttpMessageReader<Objec
 	/**
 	 * Return the configured {@code Decoder}.
 	 */
+	@Nullable
 	public Decoder<?> getDecoder() {
 		return this.decoder;
 	}
@@ -93,8 +95,12 @@ public class ServerSentEventHttpMessageReader implements HttpMessageReader<Objec
 
 	@Override
 	public boolean canRead(ResolvableType elementType, @Nullable MediaType mediaType) {
-		return MediaType.TEXT_EVENT_STREAM.includes(mediaType) ||
-				ServerSentEvent.class.isAssignableFrom(elementType.getRawClass());
+		return (MediaType.TEXT_EVENT_STREAM.includes(mediaType) || isServerSentEvent(elementType));
+	}
+
+	private boolean isServerSentEvent(ResolvableType elementType) {
+		Class<?> rawClass = elementType.getRawClass();
+		return (rawClass != null && ServerSentEvent.class.isAssignableFrom(rawClass));
 	}
 
 
@@ -102,8 +108,8 @@ public class ServerSentEventHttpMessageReader implements HttpMessageReader<Objec
 	public Flux<Object> read(ResolvableType elementType, ReactiveHttpInputMessage message,
 			Map<String, Object> hints) {
 
-		boolean shouldWrap = ServerSentEvent.class.isAssignableFrom(elementType.getRawClass());
-		ResolvableType valueType = shouldWrap ? elementType.getGeneric(0) : elementType;
+		boolean shouldWrap = isServerSentEvent(elementType);
+		ResolvableType valueType = (shouldWrap ? elementType.getGeneric(0) : elementType);
 
 		return Flux.from(message.getBody())
 				.concatMap(ServerSentEventHttpMessageReader::splitOnNewline)
@@ -173,10 +179,14 @@ public class ServerSentEventHttpMessageReader implements HttpMessageReader<Objec
 		return sseBuilder.build();
 	}
 
+	@Nullable
 	private Object decodeData(String data, ResolvableType dataType, Map<String, Object> hints) {
-
-		if (String.class.isAssignableFrom(dataType.getRawClass())) {
+		if (String.class == dataType.resolve()) {
 			return data.substring(0, data.length() - 1);
+		}
+
+		if (this.decoder == null) {
+			return Flux.error(new CodecException("No SSE decoder configured and the data is not String."));
 		}
 
 		byte[] bytes = data.getBytes(StandardCharsets.UTF_8);

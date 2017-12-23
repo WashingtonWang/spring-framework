@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,19 +42,25 @@ import org.springframework.util.ClassUtils;
 public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 		implements FactoryBean<Object>, BeanClassLoaderAware, InitializingBean {
 
+	@Nullable
 	private Object target;
 
+	@Nullable
 	private Class<?>[] proxyInterfaces;
 
+	@Nullable
 	private Object[] preInterceptors;
 
+	@Nullable
 	private Object[] postInterceptors;
 
 	/** Default is global AdvisorAdapterRegistry */
 	private AdvisorAdapterRegistry advisorAdapterRegistry = GlobalAdvisorAdapterRegistry.getInstance();
 
+	@Nullable
 	private transient ClassLoader proxyClassLoader;
 
+	@Nullable
 	private Object proxy;
 
 
@@ -124,7 +130,7 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 	}
 
 	@Override
-	public void setBeanClassLoader(@Nullable ClassLoader classLoader) {
+	public void setBeanClassLoader(ClassLoader classLoader) {
 		if (this.proxyClassLoader == null) {
 			this.proxyClassLoader = classLoader;
 		}
@@ -170,8 +176,10 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 		}
 		else if (!isProxyTargetClass()) {
 			// Rely on AOP infrastructure to tell us what interfaces to proxy.
-			proxyFactory.setInterfaces(
-					ClassUtils.getAllInterfacesForClass(targetSource.getTargetClass(), this.proxyClassLoader));
+			Class<?> targetClass = targetSource.getTargetClass();
+			if (targetClass != null) {
+				proxyFactory.setInterfaces(ClassUtils.getAllInterfacesForClass(targetClass, this.proxyClassLoader));
+			}
 		}
 
 		postProcessProxyFactory(proxyFactory);
@@ -213,6 +221,7 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 	}
 
 	@Override
+	@Nullable
 	public Class<?> getObjectType() {
 		if (this.proxy != null) {
 			return this.proxy.getClass();

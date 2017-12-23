@@ -71,7 +71,7 @@ public abstract class AbstractGenericHttpMessageConverter<T> extends AbstractHtt
 	}
 
 	@Override
-	public boolean canWrite(@Nullable Type type, @Nullable Class<?> clazz, @Nullable MediaType mediaType) {
+	public boolean canWrite(@Nullable Type type, Class<?> clazz, @Nullable MediaType mediaType) {
 		return canWrite(clazz, mediaType);
 	}
 
@@ -79,8 +79,8 @@ public abstract class AbstractGenericHttpMessageConverter<T> extends AbstractHtt
 	 * This implementation sets the default headers by calling {@link #addDefaultHeaders},
 	 * and then calls {@link #writeInternal}.
 	 */
-	public final void write(final T t, @Nullable final Type type, @Nullable MediaType contentType, HttpOutputMessage outputMessage)
-			throws IOException, HttpMessageNotWritableException {
+	public final void write(final T t, @Nullable final Type type, @Nullable MediaType contentType,
+			HttpOutputMessage outputMessage) throws IOException, HttpMessageNotWritableException {
 
 		final HttpHeaders headers = outputMessage.getHeaders();
 		addDefaultHeaders(headers, t, contentType);
